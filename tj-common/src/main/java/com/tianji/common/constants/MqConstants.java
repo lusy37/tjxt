@@ -19,6 +19,7 @@ public interface MqConstants {
 
         /*支付有关的交换机*/
         String PAY_EXCHANGE = "pay.topic";
+        String PROMOTION_EXCHANGE = "promotion.topic";
     }
     interface Queue {
         String ERROR_QUEUE_TEMPLATE = "error.{}.queue";
@@ -61,5 +62,6 @@ public interface MqConstants {
         String PAY_SUCCESS = "pay.success";
         String REFUND_CHANGE = "refund.status.change";
 
+        String COUPON_RECEIVE = "coupon:receive";
     }
 }
