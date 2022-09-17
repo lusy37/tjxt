@@ -38,11 +38,6 @@ public class Coupon implements Serializable {
     private String name;
 
     /**
-     * 活动id，如果为0：表示没有指定活动就是单一的优惠券
-     */
-    private Long promotionId;
-
-    /**
      * 优惠券类型，1：普通券。目前就一种，保留字段
      */
     private Integer type;
@@ -55,6 +50,7 @@ public class Coupon implements Serializable {
     /**
      * 是否限定作用范围，false：不限定，true：限定。默认false
      */
+    @TableField("`specific`")
     private Boolean specific;
 
     /**

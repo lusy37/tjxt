@@ -9,6 +9,8 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 /**
  * <p>
  * 兑换码 前端控制器
@@ -27,7 +29,7 @@ public class ExchangeCodeController {
 
     @ApiOperation("分页查询兑换码")
     @GetMapping("page")
-    public PageDTO<String> queryCodePage(CodeQuery query){
+    public PageDTO<String> queryCodePage(@Valid CodeQuery query){
         return codeService.queryCodePage(query);
     }
 

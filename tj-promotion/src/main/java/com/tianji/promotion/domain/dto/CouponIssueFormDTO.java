@@ -25,4 +25,13 @@ public class CouponIssueFormDTO {
     @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
     private LocalDateTime issueEndTime;
 
+
+    @ApiModelProperty("有效天数")
+    private Integer termDays;
+    @ApiModelProperty("使用有效期开始时间")
+    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
+    private LocalDateTime termBeginTime;
+    @ApiModelProperty("使用有效期结束时间")
+    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
+    private LocalDateTime termEndTime;
 }

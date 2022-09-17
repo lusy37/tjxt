@@ -1,15 +1,12 @@
 package com.tianji.promotion.domain.dto;
 
-import com.tianji.common.utils.DateUtils;
 import com.tianji.common.validate.annotations.EnumValid;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -41,15 +38,6 @@ public class CouponFormDTO{
     private Integer discountValue;
     @ApiModelProperty("最大优惠金额")
     private Integer maxDiscountAmount;
-
-    @ApiModelProperty("有效天数")
-    private Integer termDays;
-    @ApiModelProperty("使用有效期开始时间")
-    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
-    private LocalDateTime termBeginTime;
-    @ApiModelProperty("使用有效期结束时间")
-    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
-    private LocalDateTime termEndTime;
 
     @ApiModelProperty("优惠券总量，如果为0代表无上限")
     private Integer totalNum;

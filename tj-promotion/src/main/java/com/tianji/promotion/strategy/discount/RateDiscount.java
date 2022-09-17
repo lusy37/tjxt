@@ -31,7 +31,7 @@ public class RateDiscount implements Discount {
     @Override
     public int calculateDiscount(int totalAmount) {
         // 计算折扣，扩大100倍计算，向下取整，单位是分
-        return Math.min(maxDiscountAmount, totalAmount * discountValue / 100);
+        return Math.min(maxDiscountAmount, totalAmount * (100 - discountValue) / 100);
     }
 
     @Override

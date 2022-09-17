@@ -1,5 +1,6 @@
 package com.tianji.promotion.constants;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.tianji.common.enums.BaseEnum;
 import com.tianji.promotion.strategy.scope.CategoryScope;
@@ -40,6 +41,7 @@ public enum ScopeType implements BaseEnum {
     public static final String CATEGORY_HANDLER_NAME = "CATEGORY";
     public static final String COURSE_HANDLER_NAME = "COURSE";
 
+    @JsonCreator
     public static ScopeType of(Integer value) {
         if (value == null) {
             return null;

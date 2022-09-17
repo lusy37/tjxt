@@ -37,4 +37,6 @@ public interface ICouponService extends IService<Coupon> {
     void snapUpCoupon(Long couponId);
 
     void snapUpCoupon(UserCoupon userCoupon);
+
+    void issueCouponByPage(int page, int size);
 }

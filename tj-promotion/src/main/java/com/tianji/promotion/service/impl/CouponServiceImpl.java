@@ -185,7 +185,9 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             CouponPageVO v = BeanUtils.toBean(r, CouponPageVO.class);
             list.add(v);
             v.setRule(r.discount().getRule());
-            v.setUsed(usedTimes.get(r.getId()));
+            v.setUsed(usedTimes.getOrDefault(r.getId(), 0));
+            v.setScope(r.getSpecific() ? "部分课程可用" : "全部课程可用");
+            v.setObtainWay(ObtainType.of(r.getObtainWay()));
         }
         return PageDTO.of(page, list);
     }
@@ -235,7 +237,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .eq(Coupon::getId, id)
                 .in(Coupon::getStatus, UN_ISSUE.getValue(), ISSUING.getValue())
                 .update();
-        if (success) {
+        if (!success) {
             // 可能是重复更新，结束
             return;
         }
@@ -247,6 +249,16 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     @Override
     @Transactional
     public void beginIssue(CouponIssueFormDTO dto) {
+        // 0.券领取和使用有效期校验
+        if(dto.getTermBeginTime() != null){
+            // 在设置绝对使用有效期时，使用有效期必须在领取有效期之间
+            if(dto.getTermBeginTime().isBefore(dto.getIssueBeginTime())
+                || dto.getTermEndTime().isAfter(dto.getIssueEndTime())){
+                // 使用有效期超出了领取有效期范围，无效数据
+                throw new BadRequestException("使用有效期不能超出领取有效期范围");
+            }
+        }
+
         Long id = dto.getId();
         // 1.查询旧优惠券
         Coupon coupon = getById(id);
@@ -260,31 +272,37 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 3.修改优惠券信息
         Coupon c = new Coupon();
         c.setId(id);
-        // 3.1.时间信息
+        // 3.1.发放时间信息
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime issueBeginTime = dto.getIssueBeginTime();
         // 如果开始时间为空，说明是立即开始，需要修改优惠券状态为发放中
-        if (issueBeginTime == null) {
+        boolean isBegin = issueBeginTime == null || now.isAfter(issueBeginTime);
+        if (isBegin) {
             issueBeginTime = now;
             c.setStatus(ISSUING.getValue());
+        }else{
+            c.setStatus(UN_ISSUE.getValue());
         }
         c.setIssueBeginTime(issueBeginTime);
         c.setIssueEndTime(dto.getIssueEndTime());
-        // 3.2.更新
+        // 3.2.使用有效期信息
+        c.setTermDays(dto.getTermDays());
+        c.setTermBeginTime(dto.getTermBeginTime());
+        c.setTermEndTime(dto.getTermEndTime());
+        // 3.3.更新
         updateById(c);
 
-        // 4.建立Redis缓存
-        Map<String, Object> map = new HashMap<>();
-        map.put("issueBeginTime", DateUtils.toEpochMilli(c.getIssueBeginTime()));
-        map.put("issueEndTime", DateUtils.toEpochMilli(c.getIssueEndTime()));
-        map.put("totalNum", c.getTotalNum());
-        map.put("userLimit", c.getUserLimit());
-        stringRedisTemplate.opsForHash().putAll(COUPON_CACHE_KEY_PREFIX + id, map);
-
-        // 5.判断优惠券发放方式是否是手动发放，如果是的话需要生成兑换码
+        // 4.判断优惠券发放方式是否是手动发放，如果是的话需要生成兑换码
         if (ObtainType.ISSUE.equalsValue(coupon.getObtainWay())) {
             coupon.setIssueEndTime(c.getIssueEndTime());
             codeService.generateExchangeCodeAsync(coupon);
+        }
+
+        // 5.对于已经处于“进行中”状态的券，需要建立Redis缓存
+        if(isBegin){
+            c.setTotalNum(coupon.getTotalNum());
+            c.setUserLimit(coupon.getUserLimit());
+            cacheCouponInfo(c);
         }
     }
 
@@ -351,7 +369,8 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
         // 3.校验时间
         LocalDateTime now = LocalDateTime.now();
-        if (coupon.getIssueBeginTime().isAfter(now) || coupon.getIssueEndTime().isBefore(now)) {
+        if (!ISSUING.equalsValue(coupon.getStatus()) ||
+                coupon.getIssueBeginTime().isAfter(now) || coupon.getIssueEndTime().isBefore(now)) {
             // 优惠券领取未开始或已经结束，结束
             log.error("用户领取的优惠券未开始或已经结束：{}", couponId);
             return;
@@ -372,6 +391,50 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
         // 6.写入用户券
         userCouponService.createUserCouponWithId(coupon, ucId, userId);
+    }
+
+    @Override
+    public void issueCouponByPage(int page, int size) {
+        // 1.分页查询“未开始”状态的优惠券
+        Page<Coupon> p = lambdaQuery()
+                .eq(Coupon::getStatus, UN_ISSUE.getValue())
+                .page(new Page<>(page, size));
+        // 2.判断是否有需要处理的数据
+        List<Coupon> records = p.getRecords();
+        if (CollUtils.isEmpty(records)) {
+            // 没有数据，结束本次任务
+            return;
+        }
+        // 3.找到需要处理的数据(已经过了发送日期的）
+        LocalDateTime now = LocalDateTime.now();
+        List<Coupon> list = records.stream()
+                .filter(c -> now.isAfter(c.getIssueBeginTime()))
+                .collect(Collectors.toList());
+        if(list.size() < 1){
+            // 没有到期的券
+            return;
+        }
+        log.debug("找到需要处理的优惠券{}条", list.size());
+
+        // 4.修改券状态
+        List<Long> ids = list.stream().map(Coupon::getId).collect(Collectors.toList());
+        lambdaUpdate()
+                .set(Coupon::getStatus, ISSUING.getValue())
+                .in(Coupon::getId, ids)
+                .update();
+
+        // 5.找到手动领取的优惠券，建立Redis缓存
+        list.stream().filter(c -> ObtainType.PUBLIC.equalsValue(c.getObtainWay()))
+                .forEach(this::cacheCouponInfo);
+    }
+
+    private void cacheCouponInfo(Coupon c) {
+        Map<String, String> map = new HashMap<>();
+        map.put("issueBeginTime", String.valueOf(DateUtils.toEpochMilli(c.getIssueBeginTime())));
+        map.put("issueEndTime", String.valueOf(DateUtils.toEpochMilli(c.getIssueEndTime())));
+        map.put("totalNum", String.valueOf(c.getTotalNum()));
+        map.put("userLimit", String.valueOf(c.getUserLimit()));
+        stringRedisTemplate.opsForHash().putAll(COUPON_CACHE_KEY_PREFIX + c.getId(), map);
     }
 
     private CouponScopeDTO transferScopeDTO(Scope s) {

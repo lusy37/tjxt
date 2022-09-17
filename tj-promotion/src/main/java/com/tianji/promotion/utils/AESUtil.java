@@ -2,7 +2,6 @@ package com.tianji.promotion.utils;
 
 import cn.hutool.core.util.RandomUtil;
 import com.tianji.common.exceptions.CommonException;
-import org.springframework.beans.factory.annotation.Value;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -16,16 +15,6 @@ import java.security.SecureRandom;
  * Encryption and Decryption using AES 256 Algorithm
  */
 public class AESUtil {
-    /**
-     * 加密密钥，长度必须是256字节
-     */
-    @Value("${tj.promotion.aes.key}")
-    private String key;
-    /**
-     * 初始向量，长度必须是16字节
-     */
-    @Value("${tj.promotion.aes.iv}")
-    private String iv;
 
     private static final String CIPHER_ALGORITHM = "AES/CTR/NoPadding";
     private static final String KEY_ALGORITHM = "AES";

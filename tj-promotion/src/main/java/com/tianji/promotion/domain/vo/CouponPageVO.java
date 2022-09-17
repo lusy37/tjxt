@@ -1,6 +1,7 @@
 package com.tianji.promotion.domain.vo;
 
 import com.tianji.common.utils.DateUtils;
+import com.tianji.promotion.constants.ObtainType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -15,12 +16,12 @@ public class CouponPageVO {
     private Long id;
     @ApiModelProperty("优惠券名称")
     private String name;
-    @ApiModelProperty("范围类型，1：所有分类，2：特定分类，3：特定商品")
-    private Integer scope;
+    @ApiModelProperty("使用范围说明")
+    private String scope;
     @ApiModelProperty("优惠券规则")
     private String rule;
     @ApiModelProperty("获取方式1：手动领取，2：指定发放（通过兑换码兑换）")
-    private Integer obtainWay;
+    private ObtainType obtainWay;
 
     @ApiModelProperty("已使用")
     private Integer used;

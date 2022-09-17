@@ -29,7 +29,7 @@ public class ExchangeCode implements Serializable {
     /**
      * 兑换码id
      */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
 
     /**

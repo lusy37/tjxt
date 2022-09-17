@@ -1,7 +1,7 @@
 package com.tianji.promotion.constants;
 
 public interface PromotionErrorInfo {
-    String COUPON_NOT_EXISTS = "优惠券不存在";
+    String COUPON_NOT_EXISTS = "优惠券不存在或活动已结束";
     String COUPON_EXPIRED = "优惠券已经过期";
     String COUPON_NOT_ENOUGH = "优惠券被领完了";
 

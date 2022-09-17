@@ -68,7 +68,7 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
     public PageDTO<UserCouponVO> queryUserCouponPage(UserCouponQuery query) {
         // 1.查询数据
         Page<UserCoupon> page = lambdaQuery()
-                .eq(UserCoupon::getStatus, query.getStatus())
+                .eq(query.getStatus() != null, UserCoupon::getStatus, query.getStatus())
                 .page(query.toMpPage("term_end_time", true));
 
         // 2.非空处理
@@ -204,6 +204,7 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         lambdaUpdate()
                 .set(UserCoupon::getStatus, UserCouponStatus.USED.getValue())
                 .set(UserCoupon::getUsedTime, now)
+                .set(UserCoupon::getOrderId, orderId)
                 .eq(UserCoupon::getId, couponId)
                 .update();
     }
