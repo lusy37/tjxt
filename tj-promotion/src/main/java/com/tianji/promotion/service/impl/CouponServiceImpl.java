@@ -215,6 +215,9 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         List<CouponScopeDTO> scopeDTOS = scopes.stream()
                 .map(this::transferScopeDTO).collect(Collectors.toList());
         vo.setScopes(scopeDTOS);
+
+        // 4.查看优惠券折扣
+        vo.setRule(coupon.discount().getRule());
         return vo;
     }
 

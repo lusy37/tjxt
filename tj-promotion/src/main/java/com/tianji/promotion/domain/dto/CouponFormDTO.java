@@ -39,7 +39,7 @@ public class CouponFormDTO{
     @ApiModelProperty("最大优惠金额")
     private Integer maxDiscountAmount;
 
-    @ApiModelProperty("优惠券总量，如果为0代表无上限")
+    @ApiModelProperty("优惠券总量")
     private Integer totalNum;
     @ApiModelProperty("每人领取的上限")
     private Integer userLimit;

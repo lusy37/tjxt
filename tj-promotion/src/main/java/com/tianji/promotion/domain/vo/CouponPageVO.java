@@ -1,11 +1,9 @@
 package com.tianji.promotion.domain.vo;
 
-import com.tianji.common.utils.DateUtils;
 import com.tianji.promotion.constants.ObtainType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
@@ -31,19 +29,18 @@ public class CouponPageVO {
     private Integer totalNum;
 
     @ApiModelProperty("发放开始时间")
-    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
+    private LocalDateTime createTime;
+
+    @ApiModelProperty("发放开始时间")
     private LocalDateTime issueBeginTime;
     @ApiModelProperty("发放结束时间")
-    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
     private LocalDateTime issueEndTime;
 
     @ApiModelProperty("有效天数")
     private Integer termDays;
     @ApiModelProperty("使用有效期开始时间")
-    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
     private LocalDateTime termBeginTime;
     @ApiModelProperty("使用有效期结束时间")
-    @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
     private LocalDateTime termEndTime;
 
     @ApiModelProperty("状态")
