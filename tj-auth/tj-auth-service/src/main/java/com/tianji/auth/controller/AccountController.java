@@ -2,11 +2,15 @@ package com.tianji.auth.controller;
 
 
 import com.tianji.api.dto.user.LoginFormDTO;
+import com.tianji.auth.common.constants.JwtConstants;
 import com.tianji.auth.service.IAccountService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 账户登录相关接口
@@ -14,14 +18,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/accounts")
 @Api(tags = "账户管理")
+@RequiredArgsConstructor
 public class AccountController {
 
     private final IAccountService accountService;
-
-    @Autowired
-    public AccountController(IAccountService accountService) {
-        this.accountService = accountService;
-    }
 
     @ApiOperation("登录并获取token")
     @PostMapping(value = "/login")
@@ -36,9 +36,9 @@ public class AccountController {
     }
 
     @ApiOperation("刷新token")
-    @PostMapping(value = "/refresh")
-    public String refreshToken(@RequestParam("refreshToken") String token){
-        return accountService.refreshToken(token);
+    @GetMapping(value = "/refresh")
+    public String refreshToken(@CookieValue(JwtConstants.REFRESH_HEADER) String token){
+        return accountService.refreshToken(URLDecoder.decode(token, StandardCharsets.UTF_8));
     }
 
     @ApiOperation("退出登录")
