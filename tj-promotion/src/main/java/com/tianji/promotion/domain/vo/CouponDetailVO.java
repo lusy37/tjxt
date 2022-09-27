@@ -22,15 +22,8 @@ public class CouponDetailVO {
     @ApiModelProperty("优惠券使用范围，key范围类型(0-没有限制，1-限定分类，2-限定课程)，值是范围ID")
     private List<CouponScopeDTO> scopes;
 
-    @ApiModelProperty("优惠券类型，1：每满减，2：折扣，3：无门槛，4：普通满减")
-    private Integer discountType;
-
-    @ApiModelProperty("折扣门槛，0代表无门槛")
-    private Integer thresholdAmount;
-    @ApiModelProperty("折扣值，满减填抵扣金额；打折填折扣值：80标示打8折")
-    private Integer discountValue;
-    @ApiModelProperty("最大优惠金额")
-    private Integer maxDiscountAmount;
+    @ApiModelProperty("优惠券折扣规则")
+    private String rule;
 
     @ApiModelProperty("发放开始时间")
     @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
