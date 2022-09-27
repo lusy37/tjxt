@@ -5,7 +5,6 @@ import cn.hutool.jwt.signers.JWTSigner;
 import cn.hutool.jwt.signers.JWTSignerUtil;
 import com.tianji.auth.common.constants.JwtConstants;
 import com.tianji.common.domain.dto.LoginUserDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -19,12 +18,10 @@ public class JwtTool {
     private final StringRedisTemplate stringRedisTemplate;
     private final JWTSigner jwtSigner;
 
-    @Autowired
     public JwtTool(StringRedisTemplate stringRedisTemplate, KeyPair keyPair) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.jwtSigner = JWTSignerUtil.createSigner("rs256", keyPair);
     }
-
     /**
      * 创建 access-token
      * @param userDTO 用户信息
@@ -60,7 +57,7 @@ public class JwtTool {
     }
 
     /**
-     * 清理刷新refresh-token的jti，是refresh-token作废
+     * 清理刷新refresh-token的jti，本质是refresh-token作废
      */
     public void cleanJtiCache() {
         // TODO
