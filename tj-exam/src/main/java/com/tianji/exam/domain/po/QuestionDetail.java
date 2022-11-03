@@ -1,12 +1,16 @@
 package com.tianji.exam.domain.po;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -19,7 +23,7 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("question_detail")
+@TableName(value = "question_detail", autoResultMap = true)
 public class QuestionDetail implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -33,7 +37,8 @@ public class QuestionDetail implements Serializable {
     /**
      * 选择题选项，json数组格式
      */
-    private String options;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> options;
 
     /**
      * 选择题正确答案1到10，如果有多个答案，中间使用逗号隔开，如果是判断题，1：代表正确，其他代表错误
@@ -44,32 +49,4 @@ public class QuestionDetail implements Serializable {
      * 答案解析
      */
     private String analysis;
-
-    /**
-     * 部门id
-     */
-    private Long depId;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createTime;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updateTime;
-    /**
-     * 创建人
-     */
-
-    private Long creater;
-
-    /**
-     * 更新人
-     */
-
-    private Long updater;
-
-
 }

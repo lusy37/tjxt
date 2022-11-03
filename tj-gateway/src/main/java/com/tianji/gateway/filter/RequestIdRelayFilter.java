@@ -1,6 +1,7 @@
 package com.tianji.gateway.filter;
 
 import cn.hutool.core.lang.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -11,6 +12,7 @@ import reactor.core.publisher.Mono;
 
 import static com.tianji.common.constants.Constant.*;
 
+@Slf4j
 @Component
 public class RequestIdRelayFilter implements GlobalFilter, Ordered {
     @Override

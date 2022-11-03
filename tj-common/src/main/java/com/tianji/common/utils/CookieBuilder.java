@@ -40,10 +40,8 @@ public class CookieBuilder {
             cookie.setDomain(domain);
         }else if (request != null) {
             String serverName = request.getServerName();
-            if(serverName.startsWith("www\\.")){
-                serverName = serverName.substring(4);
-            }
-            cookie.setDomain(serverName);
+            serverName = StringUtils.subAfter(serverName, ".", false);
+            cookie.setDomain("." + serverName);
         }
         cookie.setHttpOnly(httpOnly);
         cookie.setMaxAge(maxAge);

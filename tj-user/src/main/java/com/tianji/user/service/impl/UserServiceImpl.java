@@ -70,9 +70,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (user == null) {
             throw new BadRequestException(ILLEGAL_LOGIN_TYPE);
         }
-        // 5.判断是否是后台用户
-        if (isStaff && user.getType() == UserType.STUDENT) {
-            throw new ForbiddenException(INVALID_USER_TYPE);
+        // 5.判断用户类型与登录方式是否匹配
+        if (isStaff ^ user.getType() != UserType.STUDENT) {
+            throw new BadRequestException(isStaff ? "非管理端用户" : "非学生端用户");
         }
         // 6.封装返回
         LoginUserDTO userDTO = new LoginUserDTO();
@@ -93,6 +93,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public UserDetailVO myInfo() {
         // 1.获取登录用户id
         Long userId = UserContext.getUser();
+        if (userId == null) {
+            return null;
+        }
         // 2.查询用户
         UserDetail userDetail = detailService.queryById(userId);
         AssertUtils.isNotNull(userDetail, USER_ID_NOT_EXISTS);

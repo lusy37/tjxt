@@ -8,12 +8,14 @@ import com.tianji.api.dto.IdAndNumDTO;
 import com.tianji.api.dto.exam.QuestionDTO;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.constants.Constant;
-import com.tianji.common.constants.ErrorInfo;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
-import com.tianji.common.utils.*;
+import com.tianji.common.utils.BeanUtils;
+import com.tianji.common.utils.CollUtils;
+import com.tianji.common.utils.StringUtils;
 import com.tianji.exam.domain.dto.QuestionFormDTO;
 import com.tianji.exam.domain.po.Question;
+import com.tianji.exam.domain.po.QuestionBiz;
 import com.tianji.exam.domain.po.QuestionDetail;
 import com.tianji.exam.domain.query.QuestionPageQuery;
 import com.tianji.exam.domain.vo.QuestionDetailVO;
@@ -26,10 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.tianji.exam.constants.ExamErrorInfo.QUESTION_NOT_EXISTS;
@@ -70,7 +69,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 .setId(question.getId())
                 .setAnalysis(questionDTO.getAnalysis())
                 .setAnswer(questionDTO.getAnswer())
-                .setOptions(JsonUtils.toJsonStr(questionDTO.getOptions()));
+                .setOptions(questionDTO.getOptions());
         detailService.save(detail);
     }
 
@@ -91,7 +90,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 .setId(question.getId())
                 .setAnalysis(questionDTO.getAnalysis())
                 .setAnswer(questionDTO.getAnswer())
-                .setOptions(JsonUtils.toJsonStr(questionDTO.getOptions()));
+                .setOptions(questionDTO.getOptions());
         detailService.updateById(detail);
     }
 
@@ -99,7 +98,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     public void deleteQuestionById(Long id) {
         // 1.查询题目和业务之间是否有关联
         int usedTimes = bizService.countUsedTimes(id);
-        if (usedTimes >= 0) {
+        if (usedTimes > 0) {
             throw new BadRequestException("题目被使用中，无法删除");
         }
         // 2.删除题目
@@ -123,12 +122,21 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         if (CollUtils.isEmpty(records)) {
             return PageDTO.empty(page);
         }
-        // 3.查询提问者信息
-        Set<Long> uIds = records.stream().map(Question::getUpdater).collect(Collectors.toSet());
-        List<UserDTO> users = userClient.queryUserByIds(uIds);
-        AssertUtils.isNotEmpty(users, ErrorInfo.Msg.USER_NOT_EXISTS);
-        Map<Long, UserDTO> userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, u -> u));
-
+        // 3.查询VO信息，包含：引用次数、提问者信息
+        Set<Long> qIds = new HashSet<>();
+        Set<Long> uIds = new HashSet<>();
+        for (Question record : records) {
+            qIds.add(record.getId());
+            uIds.add(record.getUpdater());
+        }
+        // 3.1.统计引用次数
+        Map<Long, Integer> countMap = bizService.countUsedTimes(qIds);
+        // 3.2.查询用户
+        Map<Long, UserDTO> userMap = new HashMap<>(uIds.size());
+        if (CollUtils.isNotEmpty(uIds)) {
+            List<UserDTO> users = userClient.queryUserByIds(uIds);
+            userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, u -> u));
+        }
         // 4.处理vo
         List<QuestionPageVO> list = new ArrayList<>(records.size());
         for (Question r : records) {
@@ -140,6 +148,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             v.setUpdater(u == null ? "" : u.getName());
             // 4.3.分类
             v.setCategories(categoryCache.getCategoryNameList(List.of(r.getCateId1(), r.getCateId2(), r.getCateId3())));
+            // 4.4.引用次数
+            v.setUseTimes(countMap.getOrDefault(r.getId(), 0));
         }
         return PageDTO.of(page, list);
     }
@@ -161,14 +171,15 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         // 4.转换vo
         QuestionDetailVO v = BeanUtils.copyBean(q, QuestionDetailVO.class);
         // 4.1.详情
-        v.setOptions(JsonUtils.toList(detail.getOptions(), String.class));
+        v.setOptions(detail.getOptions());
         v.setAnalysis(detail.getAnalysis());
         v.setAnswer(detail.getAnswer());
         // 4.2.用户
         v.setUpdater(u == null ? "" : u.getName());
         // 4.3.分类
         v.setCategories(categoryCache.getCategoryNameList(List.of(q.getCateId1(), q.getCateId2(), q.getCateId3())));
-        // TODO 4.4.统计准确率
+        // 4.4.引用次数
+        v.setUseTimes(bizService.countUsedTimes(id));
         return v;
     }
 
@@ -195,7 +206,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             list.add(d);
             // 3.2.获取详情
             QuestionDetail detail = detailMap.get(q.getId());
-            d.setOptions(JsonUtils.toList(detail.getOptions(), String.class));
+            d.setOptions(detail.getOptions());
             d.setAnalysis(detail.getAnalysis());
             d.setAnswer(detail.getAnswer());
         }
@@ -208,5 +219,27 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         List<IdAndNumDTO> list = baseMapper.countQuestionOfCreater(createrIds);
         // 2.处理结果
         return IdAndNumDTO.toMap(list);
+    }
+
+    @Override
+    public List<QuestionDTO> queryQuestionByBizId(Long bizId) {
+        // 1.查询中间表
+        List<QuestionBiz> list = bizService.lambdaQuery()
+                .eq(QuestionBiz::getBizId, bizId)
+                .list();
+        if (CollUtils.isEmpty(list)) {
+            return CollUtils.emptyList();
+        }
+        // 2.获取问题id
+        List<Long> ids = list.stream().map(QuestionBiz::getQuestionId).collect(Collectors.toList());
+        // 3.查询数据集合
+        return queryQuestionByIds(ids);
+    }
+
+    @Override
+    public Boolean checkNameValid(String name) {
+        return lambdaQuery()
+                .eq(Question::getName, name)
+                .count()<=0;
     }
 }
