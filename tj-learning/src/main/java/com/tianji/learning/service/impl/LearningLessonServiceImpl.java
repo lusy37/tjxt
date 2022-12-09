@@ -181,7 +181,7 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
             userId = UserContext.getUser();
         }
         // 2.删除课程
-        remove(buildUserIdAndCourseIdWrapper(courseId, userId));
+        remove(buildUserIdAndCourseIdWrapper(userId, courseId));
     }
 
     @Override
@@ -211,7 +211,7 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         return lesson.getId();
     }
 
-    private LambdaQueryWrapper<LearningLesson> buildUserIdAndCourseIdWrapper(Long courseId, Long userId) {
+    private LambdaQueryWrapper<LearningLesson> buildUserIdAndCourseIdWrapper(Long userId, Long courseId) {
         LambdaQueryWrapper<LearningLesson> queryWrapper = new QueryWrapper<LearningLesson>()
                 .lambda()
                 .eq(LearningLesson::getUserId, userId)
