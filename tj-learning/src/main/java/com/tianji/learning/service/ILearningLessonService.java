@@ -5,6 +5,7 @@ import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.domain.vo.LearningPlanPageVO;
 
 import java.util.List;
 
@@ -31,4 +32,10 @@ public interface ILearningLessonService extends IService<LearningLesson> {
     Integer countLearningLessonByCourse(Long courseId);
 
     Long isLessonValid(Long courseId);
+
+    LearningLesson queryByUserAndCourseId(Long userId, Long courseId);
+
+    void createLearningPlan(Long courseId, Integer freq);
+
+    LearningPlanPageVO queryMyPlans(PageQuery query);
 }
