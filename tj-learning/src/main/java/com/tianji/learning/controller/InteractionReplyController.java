@@ -6,6 +6,7 @@ import com.tianji.learning.domain.dto.ReplyDTO;
 import com.tianji.learning.domain.query.ReplyPageQuery;
 import com.tianji.learning.domain.vo.ReplyVO;
 import com.tianji.learning.service.IInteractionReplyService;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/replies")
 @RequiredArgsConstructor
+@Api(tags = "互动问答相关接口 ")
 public class InteractionReplyController {
 
     private final IInteractionReplyService replyService;
