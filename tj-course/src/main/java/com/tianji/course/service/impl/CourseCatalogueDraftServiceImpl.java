@@ -307,7 +307,7 @@ public class CourseCatalogueDraftServiceImpl extends ServiceImpl<CourseCatalogue
         List<QuestionBizDTO> subjects = courseCataSubjectDrafts.stream()
                 .map(s -> QuestionBizDTO.of(s.getCataId(), s.getSubjectId())).collect(Collectors.toList());
         //2.删除练习和题目之间的关系
-        if(CollUtils.isEmpty(courseCataSubjectDrafts)){
+        if (CollUtils.isEmpty(courseCataSubjectDrafts)) {
             // 草稿中没有题目，直接结束
             return;
         }
@@ -429,7 +429,7 @@ public class CourseCatalogueDraftServiceImpl extends ServiceImpl<CourseCatalogue
         }
 
         for (CourseCatalogue courseCatalogue : courseCatalogues) {
-            if(courseCatalogue.getType() != CourseConstants.CataType.CHAPTER){
+            if (courseCatalogue.getType() != CourseConstants.CataType.CHAPTER) {
                 continue;
             }
             Integer index = saveIndexMap.get(courseCatalogue.getId());
@@ -529,14 +529,14 @@ public class CourseCatalogueDraftServiceImpl extends ServiceImpl<CourseCatalogue
         // 最大上架数,待上架设置空map，已上架需要排序并去小节序号（同一个章中）中最大小节
         Map<Long, CourseCatalogueDraft> chapterIdAndMaxSectionMap =
                 (courseDraft.getStatus() == CourseStatus.NO_UP_SHELF.getStatus())
-                ? new HashMap<>() :
-                courseCatalogueDrafts.parallelStream()
-                .filter(ccd -> ccd.getType() == CourseConstants.CataType.SECTION && !ccd.getCanUpdate())
-                .collect(Collectors.groupingBy(CourseCatalogueDraft::getParentCatalogueId,
-                        Collectors.collectingAndThen(
-                                Collectors.reducing(
-                                        (c1, c2) -> c2.getCIndex().compareTo(c1.getCIndex()) > 0 ? c2 : c1),
-                                Optional::get)));
+                        ? new HashMap<>() :
+                        courseCatalogueDrafts.parallelStream()
+                                .filter(ccd -> ccd.getType() == CourseConstants.CataType.SECTION && !ccd.getCanUpdate())
+                                .collect(Collectors.groupingBy(CourseCatalogueDraft::getParentCatalogueId,
+                                        Collectors.collectingAndThen(
+                                                Collectors.reducing(
+                                                        (c1, c2) -> c2.getCIndex().compareTo(c1.getCIndex()) > 0 ? c2 : c1),
+                                                Optional::get)));
         int maxChapterIndex = (courseDraft.getStatus() == CourseStatus.NO_UP_SHELF.getStatus())
                 ? 0
                 : courseCatalogueDrafts.stream()
@@ -545,24 +545,31 @@ public class CourseCatalogueDraftServiceImpl extends ServiceImpl<CourseCatalogue
                 .max(Integer::compare).get();
 
 
-        //课程的数量和分数
-        List<CataIdAndSubScore> cataIdAndSubScores = courseCataSubjectDraftMapper.queryCataIdAndScoreByCorseId(courseId);
-        //练习和题目数量map
-        Map<Long, Long> cataIdAndNumMap = CollUtils.isEmpty(cataIdAndSubScores) ? new HashMap<>() :
-                cataIdAndSubScores.stream().collect(Collectors.groupingBy(CataIdAndSubScore::getCataId, Collectors.counting()));
-        Map<Long, Integer> cataIdAndTotalScoreMap = CollUtils.isEmpty(cataIdAndSubScores) ? new HashMap<>() :
-                cataIdAndSubScores.stream().collect(Collectors.groupingBy(CataIdAndSubScore::getCataId, Collectors.summingInt(CataIdAndSubScore::getScore)));
-
-
+        // 4.查询课程对应的小节和题目信息
+        List<CourseCataSubjectDraft> subjects = courseCataSubjectDraftMapper.getByCourseId(courseId);
+        // 4.1.统计题目数量
+        Map<Long, Long> cataIdAndNumMap = CollUtils.isEmpty(subjects) ? new HashMap<>() :
+                subjects.stream().collect(Collectors.groupingBy(CourseCataSubjectDraft::getCataId, Collectors.counting()));
+        // 4.2.查询分数
+        Map<Long, Integer> cataIdAndTotalScoreMap = new HashMap<>(cataIdAndNumMap.size());
+        if (CollUtils.isNotEmpty(subjects)) {
+            Set<Long> questionIds = subjects.stream().map(CourseCataSubjectDraft::getSubjectId).collect(Collectors.toSet());
+            Map<Long, Integer> scoreMap = examClient.queryQuestionScores(questionIds);
+            cataIdAndTotalScoreMap.putAll(
+                    subjects.stream().collect(Collectors.groupingBy(
+                            CourseCataSubjectDraft::getCataId,
+                            Collectors.summingInt(d -> scoreMap.get(d.getSubjectId()))
+                    )));
+        }
         return TreeDataUtils.parseToTree(courseCatalogueDrafts, CataVO.class, (catalogueDraft, vo) -> {
             int maxIndexOnShelf = 0;
             int maxSectionIndexOnShelf = 0;
-            if(catalogueDraft.getType() == CourseConstants.CataType.SECTION){
+            if (catalogueDraft.getType() == CourseConstants.CataType.SECTION) {
                 //小节最大编辑数
                 CourseCatalogueDraft courseCatalogueDraft = chapterIdAndMaxSectionMap.get(catalogueDraft.getParentCatalogueId());
                 maxIndexOnShelf = NumberUtils.null2Zero(
                         courseCatalogueDraft == null ? 0 : courseCatalogueDraft.getCIndex());
-            }else if(catalogueDraft.getType() == CourseConstants.CataType.CHAPTER){
+            } else if (catalogueDraft.getType() == CourseConstants.CataType.CHAPTER) {
                 maxIndexOnShelf = maxChapterIndex;
                 CourseCatalogueDraft courseCatalogueDraft = chapterIdAndMaxSectionMap.get(catalogueDraft.getId());
                 maxSectionIndexOnShelf = NumberUtils.null2Zero(

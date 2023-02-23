@@ -16,5 +16,5 @@ public interface IAccountService{
 
     void logout();
 
-    String refreshToken(String token);
+    String refreshToken(String refreshToken);
 }
