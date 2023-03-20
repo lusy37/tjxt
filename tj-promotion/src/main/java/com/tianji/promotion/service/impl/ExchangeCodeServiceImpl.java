@@ -66,7 +66,7 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
         saveBatch(list);
 
         // 4.写入Redis缓存，member：couponId，score：兑换码的最大序列号
-        redisTemplate.opsForZSet().add(COUPON_RANGE_KEY_PREFIX, coupon.getId().toString(), maxSerialNum);
+        redisTemplate.opsForZSet().add(COUPON_RANGE_KEY, coupon.getId().toString(), maxSerialNum);
     }
 
     @Override
@@ -90,7 +90,7 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
     public Long exchangeTargetId(long serialNum) {
         // 1.查询score值比当前序列号大的第一个优惠券
         Set<String> results = redisTemplate.opsForZSet().rangeByScore(
-                COUPON_RANGE_KEY_PREFIX, serialNum, serialNum + 5000, 0L, 1L);
+                COUPON_RANGE_KEY, serialNum, serialNum + 5000, 0L, 1L);
         if (CollUtils.isEmpty(results)) {
             return null;
         }
