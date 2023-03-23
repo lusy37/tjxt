@@ -74,12 +74,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Integer totalAmount = courseInfos.stream()
                 .map(CourseSimpleInfoDTO::getPrice).reduce(Integer::sum).orElse(0);
         // TODO 2.2.计算优惠金额
-        Integer discountAmount = 0;
-        Integer realAmount = totalAmount - discountAmount;
+        order.setDiscountAmount(0);
+        Integer realAmount = totalAmount - order.getDiscountAmount();
         // 2.3.封装其它信息
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
-        order.setDiscountAmount(discountAmount);
         order.setRealAmount(realAmount);
         order.setStatus(OrderStatus.NO_PAY.getValue());
         order.setMessage(OrderStatus.NO_PAY.getProgressName());
@@ -189,6 +188,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (CollUtils.isEmpty(courseInfos)) {
             throw new BizIllegalException(TradeErrorInfo.COURSE_NOT_EXISTS);
         }
+        List<OrderCourseVO> courses = BeanUtils.copyList(courseInfos, OrderCourseVO.class);
         // 2.计算总价
         int total = courseInfos.stream().mapToInt(CourseSimpleInfoDTO::getPrice).sum();
         // TODO 3.计算折扣
@@ -200,6 +200,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         vo.setOrderId(orderId);
         vo.setTotalAmount(total);
         vo.setDiscountAmount(discountAmount);
+        vo.setCourses(courses);
         return vo;
     }
 
