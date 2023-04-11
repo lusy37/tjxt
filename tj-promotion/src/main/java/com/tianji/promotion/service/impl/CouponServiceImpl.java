@@ -28,6 +28,8 @@ import com.tianji.promotion.service.ICouponService;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.StringRedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -279,5 +281,29 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 .collect(Collectors.toList());
         vo.setScopes(scopeVOS);
         return vo;
+    }
+
+    @Override
+    public void beginIssueBatch(List<Coupon> coupons) {
+        // 1.更新券状态
+        for (Coupon c : coupons) {
+            c.setStatus(CouponStatus.ISSUING);
+        }
+        updateBatchById(coupons);
+        // 2.批量缓存
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            StringRedisConnection src = (StringRedisConnection) connection;
+            for (Coupon coupon : coupons) {
+                // 2.1.组织数据
+                Map<String, String> map = new HashMap<>(4);
+                map.put("issueBeginTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueBeginTime())));
+                map.put("issueEndTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueEndTime())));
+                map.put("totalNum", String.valueOf(coupon.getTotalNum()));
+                map.put("userLimit", String.valueOf(coupon.getUserLimit()));
+                // 2.2.写缓存
+                src.hMSet(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), map);
+            }
+            return null;
+        });
     }
 }
