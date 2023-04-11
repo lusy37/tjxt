@@ -8,6 +8,7 @@ import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
 import com.tianji.common.constants.MqConstants;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BizIllegalException;
+import com.tianji.common.exceptions.DbException;
 import com.tianji.common.utils.BeanUtils;
 import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.NumberUtils;
@@ -20,10 +21,12 @@ import com.tianji.promotion.domain.po.UserCoupon;
 import com.tianji.promotion.domain.query.UserCouponQuery;
 import com.tianji.promotion.domain.vo.CouponVO;
 import com.tianji.promotion.enums.ExchangeCodeStatus;
+import com.tianji.promotion.enums.UserCouponStatus;
 import com.tianji.promotion.mapper.CouponMapper;
 import com.tianji.promotion.mapper.UserCouponMapper;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
+import com.tianji.promotion.strategy.discount.DiscountStrategy;
 import com.tianji.promotion.utils.CodeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
@@ -60,8 +63,8 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
 
     private final RabbitMqHelper mqHelper;
 
-    private static RedisScript<Long> RECEIVE_COUPON_SCRIPT;
-    private static RedisScript<String> EXCHANGE_COUPON_SCRIPT;
+    private static final RedisScript<Long> RECEIVE_COUPON_SCRIPT;
+    private static final RedisScript<String> EXCHANGE_COUPON_SCRIPT;
 
     static {
         RECEIVE_COUPON_SCRIPT = RedisScript.of(new ClassPathResource("lua/receive_coupon.lua"), Long.class);
@@ -240,6 +243,99 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
 
         // 4.封装VO
         return PageDTO.of(page, BeanUtils.copyList(coupons, CouponVO.class));
+    }
+
+    @Override
+    @Transactional
+    public void writeOffCoupon(List<Long> userCouponIds) {
+        // 1.查询优惠券
+        List<UserCoupon> userCoupons = listByIds(userCouponIds);
+        if (CollUtils.isEmpty(userCoupons)) {
+            return;
+        }
+        // 2.处理数据
+        List<UserCoupon> list = userCoupons.stream()
+                // 过滤无效券
+                .filter(coupon -> {
+                    if (coupon == null) {
+                        return false;
+                    }
+                    if (UserCouponStatus.UNUSED != coupon.getStatus()) {
+                        return false;
+                    }
+                    LocalDateTime now = LocalDateTime.now();
+                    return !now.isBefore(coupon.getTermBeginTime()) && !now.isAfter(coupon.getTermEndTime());
+                })
+                // 组织新增数据
+                .map(coupon -> {
+                    UserCoupon c = new UserCoupon();
+                    c.setId(coupon.getId());
+                    c.setStatus(UserCouponStatus.USED);
+                    return c;
+                })
+                .collect(Collectors.toList());
+
+        // 4.核销，修改优惠券状态
+        boolean success = updateBatchById(list);
+        if (!success) {
+            return;
+        }
+        // 5.更新已使用数量
+        List<Long> couponIds = userCoupons.stream().map(UserCoupon::getCouponId).collect(Collectors.toList());
+        int c = couponMapper.incrUsedNum(couponIds, 1);
+        if (c < 1) {
+            throw new DbException("更新优惠券使用数量失败！");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void refundCoupon(List<Long> userCouponIds) {
+        // 1.查询优惠券
+        List<UserCoupon> userCoupons = listByIds(userCouponIds);
+        if (CollUtils.isEmpty(userCoupons)) {
+            return;
+        }
+        // 2.处理优惠券数据
+        List<UserCoupon> list = userCoupons.stream()
+                // 过滤无效券
+                .filter(coupon -> coupon != null && UserCouponStatus.USED == coupon.getStatus())
+                // 更新状态字段
+                .map(coupon -> {
+                    UserCoupon c = new UserCoupon();
+                    c.setId(coupon.getId());
+                    // 3.判断有效期，是否已经过期，如果过期，则状态为 已过期，否则状态为 未使用
+                    LocalDateTime now = LocalDateTime.now();
+                    UserCouponStatus status = now.isAfter(coupon.getTermEndTime()) ?
+                            UserCouponStatus.EXPIRED : UserCouponStatus.UNUSED;
+                    c.setStatus(status);
+                    return c;
+                }).collect(Collectors.toList());
+
+        // 4.修改优惠券状态
+        boolean success = updateBatchById(list);
+        if (!success) {
+            return;
+        }
+        // 5.更新已使用数量
+        List<Long> couponIds = userCoupons.stream().map(UserCoupon::getCouponId).collect(Collectors.toList());
+        int c = couponMapper.incrUsedNum(couponIds, -1);
+        if (c < 1) {
+            throw new DbException("更新优惠券使用数量失败！");
+        }
+    }
+
+    @Override
+    public List<String> queryDiscountRules(List<Long> userCouponIds) {
+        // 1.查询优惠券信息
+        List<Coupon> coupons = baseMapper.queryCouponByUserCouponIds(userCouponIds, UserCouponStatus.USED);
+        if (CollUtils.isEmpty(coupons)) {
+            return CollUtils.emptyList();
+        }
+        // 2.转换规则
+        return coupons.stream()
+                .map(c -> DiscountStrategy.getDiscount(c.getDiscountType()).getRule(c))
+                .collect(Collectors.toList());
     }
 
     private void saveUserCoupon(Coupon coupon, Long userId) {

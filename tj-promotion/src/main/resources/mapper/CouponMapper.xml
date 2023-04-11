@@ -2,4 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.tianji.promotion.mapper.CouponMapper">
 
+    <update id="incrUsedNum">
+        UPDATE coupon SET used_num = used_num + #{amount}
+        WHERE id IN
+        <foreach collection="couponIds" open="(" close=")" item="id" separator=",">
+            #{id}
+        </foreach>
+    </update>
 </mapper>

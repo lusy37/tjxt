@@ -29,6 +29,7 @@ public class OrderDelayQueryDTO {
         list.add(30000L);
         list.add(60000L);
         list.add(120000L);
+        list.add(1567000L); // 30分钟检查，如果依然为支付则取消订单
         dto.setDelayMillis(list);
         return dto;
     }
