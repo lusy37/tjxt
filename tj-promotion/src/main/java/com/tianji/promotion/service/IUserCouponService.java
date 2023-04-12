@@ -1,17 +1,13 @@
 package com.tianji.promotion.service;
 
-import com.tianji.api.dto.promotion.CouponDiscountDTO;
-import com.tianji.api.dto.promotion.OrderCouponDTO;
-import com.tianji.api.dto.promotion.OrderCourseDTO;
-import com.tianji.common.domain.dto.PageDTO;
-import com.tianji.promotion.domain.po.Coupon;
-import com.tianji.promotion.domain.po.UserCoupon;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tianji.common.domain.dto.PageDTO;
+import com.tianji.promotion.domain.dto.UserCouponDTO;
+import com.tianji.promotion.domain.po.UserCoupon;
 import com.tianji.promotion.domain.query.UserCouponQuery;
-import com.tianji.promotion.domain.vo.UserCouponVO;
+import com.tianji.promotion.domain.vo.CouponVO;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * <p>
@@ -19,24 +15,19 @@ import java.util.Map;
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
 public interface IUserCouponService extends IService<UserCoupon> {
+    void receiveCoupon(Long couponId);
 
-    Map<Long, Integer> countUsedTimes(List<Long> couponIds);
+    void checkAndCreateUserCoupon(UserCouponDTO uc);
 
-    PageDTO<UserCouponVO> queryUserCouponPage(UserCouponQuery query);
+    void exchangeCoupon(String code);
 
-    List<CouponDiscountDTO> queryAvailableCoupon(List<OrderCourseDTO> orderCourses);
+    PageDTO<CouponVO> queryMyCouponPage(UserCouponQuery query);
 
-    CouponDiscountDTO queryDiscountByCouponId(OrderCouponDTO orderCouponDTO);
+    void writeOffCoupon(List<Long> userCouponIds);
 
-    int countUserReceiveNum(Long couponId, Long userId);
+    void refundCoupon(List<Long> userCouponIds);
 
-    void createUserCouponWithId(Coupon coupon, Long id, Long userId);
-
-    void writeOffCoupon(Long couponId, Long orderId);
-
-    void refundCoupon(Long couponId);
-
+    List<String> queryDiscountRules(List<Long> userCouponIds);
 }

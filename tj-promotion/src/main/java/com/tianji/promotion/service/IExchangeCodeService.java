@@ -5,6 +5,7 @@ import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.po.Coupon;
 import com.tianji.promotion.domain.po.ExchangeCode;
 import com.tianji.promotion.domain.query.CodeQuery;
+import com.tianji.promotion.domain.vo.ExchangeCodeVO;
 
 /**
  * <p>
@@ -12,13 +13,13 @@ import com.tianji.promotion.domain.query.CodeQuery;
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
 public interface IExchangeCodeService extends IService<ExchangeCode> {
+    void asyncGenerateCode(Coupon coupon);
 
-    void generateExchangeCodeAsync(Coupon coupon);
+    boolean updateExchangeMark(long serialNum, boolean mark);
 
-    PageDTO<String> queryCodePage(CodeQuery query);
+    PageDTO<ExchangeCodeVO> queryCodePage(CodeQuery query);
 
-    void exchangeCoupon(String code);
+    Long exchangeTargetId(long serialNum);
 }

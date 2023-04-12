@@ -9,7 +9,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
 public interface ExchangeCodeMapper extends BaseMapper<ExchangeCode> {
 

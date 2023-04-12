@@ -1,27 +1,26 @@
 package com.tianji.promotion.controller;
 
-
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.query.CodeQuery;
+import com.tianji.promotion.domain.vo.ExchangeCodeVO;
 import com.tianji.promotion.service.IExchangeCodeService;
-import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 
 /**
  * <p>
- * 兑换码 前端控制器
+ * 兑换码 控制器
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
-@RequiredArgsConstructor
 @RestController
-@Api(tags = "优惠券相关接口")
+@RequiredArgsConstructor
 @RequestMapping("/codes")
 public class ExchangeCodeController {
 
@@ -29,13 +28,7 @@ public class ExchangeCodeController {
 
     @ApiOperation("分页查询兑换码")
     @GetMapping("page")
-    public PageDTO<String> queryCodePage(@Valid CodeQuery query){
+    public PageDTO<ExchangeCodeVO> queryCodePage(@Valid CodeQuery query){
         return codeService.queryCodePage(query);
-    }
-
-    @ApiOperation("兑换优惠券")
-    @PostMapping("/{code}/exchange")
-    public void exchangeCoupon(@PathVariable("code") String code){
-        codeService.exchangeCoupon(code);
     }
 }

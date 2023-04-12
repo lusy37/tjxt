@@ -17,7 +17,7 @@ public class CouponIssueFormDTO {
     private Long id;
     @ApiModelProperty("发放开始时间")
     @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMAT)
-    @Future(message = "发放结束时间必须晚于当前时间")
+    @Future(message = "发放开始时间必须晚于当前时间")
     private LocalDateTime issueBeginTime;
     @ApiModelProperty("发放结束时间")
     @Future(message = "发放结束时间必须晚于当前时间")

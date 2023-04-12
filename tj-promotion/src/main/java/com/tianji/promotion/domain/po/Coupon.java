@@ -1,8 +1,12 @@
 package com.tianji.promotion.domain.po;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.tianji.promotion.constants.DiscountType;
-import com.tianji.promotion.strategy.discount.Discount;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.tianji.promotion.enums.CouponStatus;
+import com.tianji.promotion.enums.DiscountType;
+import com.tianji.promotion.enums.ObtainType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -16,10 +20,9 @@ import java.time.LocalDateTime;
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
 @Data
-@EqualsAndHashCode(callSuper = false, of = "id")
+@EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @TableName("coupon")
 public class Coupon implements Serializable {
@@ -35,6 +38,7 @@ public class Coupon implements Serializable {
     /**
      * 优惠券名称，可以和活动名称保持一致
      */
+    @TableField("`name`")
     private String name;
 
     /**
@@ -43,9 +47,9 @@ public class Coupon implements Serializable {
     private Integer type;
 
     /**
-     * 折扣类型，1：满减，2：折扣，3：无门槛
+     * 折扣类型，1：满减，2：每满减，3：折扣，4：无门槛
      */
-    private Integer discountType;
+    private DiscountType discountType;
 
     /**
      * 是否限定作用范围，false：不限定，true：限定。默认false
@@ -69,14 +73,9 @@ public class Coupon implements Serializable {
     private Integer maxDiscountAmount;
 
     /**
-     * 优惠折扣方案的拓展参数，目前为空
-     */
-    private String extParam;
-
-    /**
      * 获取方式：1：手动领取，2：兑换码
      */
-    private Integer obtainWay;
+    private ObtainType obtainWay;
 
     /**
      * 开始发放时间
@@ -106,10 +105,10 @@ public class Coupon implements Serializable {
     /**
      * 优惠券配置状态，1：待发放，2：未开始   3：进行中，4：已结束，5：暂停
      */
-    private Integer status;
+    private CouponStatus status;
 
     /**
-     * 总数量，0：表示无限量，其他正数表示最大发放量，不超过5000
+     * 总数量，不超过5000
      */
     private Integer totalNum;
 
@@ -119,9 +118,19 @@ public class Coupon implements Serializable {
     private Integer issueNum;
 
     /**
+     * 已使用数量
+     */
+    private Integer usedNum;
+
+    /**
      * 每个人限领的数量，默认1
      */
     private Integer userLimit;
+
+    /**
+     * 拓展参数字段，保留字段
+     */
+    private String extParam;
 
     /**
      * 创建时间
@@ -136,16 +145,12 @@ public class Coupon implements Serializable {
     /**
      * 创建人
      */
-    @TableField(fill = FieldFill.INSERT)
     private Long creater;
 
     /**
      * 更新人
      */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Long updater;
 
-    public Discount discount(){
-        return DiscountType.of(discountType).getDiscount(this);
-    }
+
 }

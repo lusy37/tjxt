@@ -1,12 +1,12 @@
 package com.tianji.promotion.controller;
 
-
 import com.tianji.api.dto.promotion.CouponDiscountDTO;
 import com.tianji.api.dto.promotion.OrderCouponDTO;
 import com.tianji.api.dto.promotion.OrderCourseDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.query.UserCouponQuery;
-import com.tianji.promotion.domain.vo.UserCouponVO;
+import com.tianji.promotion.domain.vo.CouponVO;
+import com.tianji.promotion.service.IDiscountService;
 import com.tianji.promotion.service.IUserCouponService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -18,51 +18,67 @@ import java.util.List;
 
 /**
  * <p>
- * 用户领取优惠券的记录，是真正使用的优惠券信息 前端控制器
+ * 用户领取优惠券的记录，是真正使用的优惠券信息 控制器
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
-@Api(tags = "优惠券相关接口")
-@RequiredArgsConstructor
 @RestController
-@RequestMapping("/coupon/user")
+@RequiredArgsConstructor
+@RequestMapping("/user-coupons")
+@Api(tags = "优惠券相关接口")
 public class UserCouponController {
 
     private final IUserCouponService userCouponService;
 
-    @ApiOperation("分页查询我的优惠券")
-    @GetMapping("/page")
-    public PageDTO<UserCouponVO> queryUserCouponPage(UserCouponQuery query){
-        return userCouponService.queryUserCouponPage(query);
+    private final IDiscountService discountService;
+
+    @ApiOperation("领取优惠券接口")
+    @PostMapping("/{couponId}/receive")
+    public void receiveCoupon(@PathVariable("couponId") Long couponId){
+        userCouponService.receiveCoupon(couponId);
     }
 
-    @ApiOperation("查询指定课程的可用优惠券")
+    @ApiOperation("兑换码兑换优惠券接口")
+    @PostMapping("/{code}/exchange")
+    public void exchangeCoupon(@PathVariable("code") String code){
+        userCouponService.exchangeCoupon(code);
+    }
+
+    @ApiOperation("分页查询我的优惠券接口")
+    @GetMapping("page")
+    public PageDTO<CouponVO> queryMyCouponPage(UserCouponQuery query){
+        return userCouponService.queryMyCouponPage(query);
+    }
+
+    @ApiOperation("查询我的优惠券可用方案")
     @PostMapping("/available")
-    public List<CouponDiscountDTO> queryAvailableCoupon(@RequestBody List<OrderCourseDTO> orderCourses){
-        return userCouponService.queryAvailableCoupon(orderCourses);
+    public List<CouponDiscountDTO> findDiscountSolution(@RequestBody List<OrderCourseDTO> orderCourses){
+        return discountService.findDiscountSolution(orderCourses);
     }
 
-    @ApiOperation("根据指定课程和优惠券计算折扣")
+    @ApiOperation("根据券方案计算订单优惠明细")
     @PostMapping("/discount")
-    public CouponDiscountDTO queryDiscountByCouponId(
-            @RequestBody OrderCouponDTO orderCouponDTO){
-        return userCouponService.queryDiscountByCouponId(orderCouponDTO);
+    public CouponDiscountDTO queryDiscountDetailByOrder(@RequestBody OrderCouponDTO orderCouponDTO){
+        return discountService.queryDiscountDetailByOrder(orderCouponDTO);
     }
 
     @ApiOperation("核销指定优惠券")
-    @PutMapping("{couponId}/use/{orderId}")
-    public void writeOffCoupon(
-            @ApiParam("优惠券id") @PathVariable("couponId") Long couponId,
-            @ApiParam("订单id") @PathVariable("orderId") Long orderId){
-        userCouponService.writeOffCoupon(couponId, orderId);
+    @PutMapping("/use")
+    public void writeOffCoupon(@ApiParam("用户优惠券id集合") @RequestParam("couponIds") List<Long> userCouponIds){
+        userCouponService.writeOffCoupon(userCouponIds);
     }
 
     @ApiOperation("退还指定优惠券")
-    @PutMapping("{couponId}/refund")
-    public void refundCoupon(@ApiParam("优惠券id") @PathVariable("couponId") Long couponId){
-        userCouponService.refundCoupon(couponId);
+    @PutMapping("/refund")
+    public void refundCoupon(@ApiParam("用户优惠券id集合") @RequestParam("couponIds") List<Long> userCouponIds){
+        userCouponService.refundCoupon(userCouponIds);
     }
 
+    @ApiOperation("分页查询我的优惠券接口")
+    @GetMapping("/rules")
+    public List<String> queryDiscountRules(
+            @ApiParam("用户优惠券id集合") @RequestParam("couponIds") List<Long> userCouponIds){
+        return userCouponService.queryDiscountRules(userCouponIds);
+    }
 }

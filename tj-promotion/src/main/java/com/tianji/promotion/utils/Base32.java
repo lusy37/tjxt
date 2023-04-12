@@ -6,7 +6,7 @@ import cn.hutool.core.text.StrBuilder;
  * 将整数转为base32字符的工具，因为是32进制，所以每5个bit位转一次
  */
 public class Base32 {
-    private final static String baseChars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    private final static String baseChars = "6CSB7H8DAKXZF3N95RTMVUQG2YE4JWPL";
 
     public static String encode(long raw) {
         StrBuilder sb = new StrBuilder();
@@ -57,22 +57,31 @@ public class Base32 {
                 size = left;
             }
         }
+        if(size > 0){
+            sb.append(baseChars.charAt(temp));
+        }
         return sb.toString();
     }
 
     public static byte[] decode2Byte(String code) {
         char[] chars = code.toCharArray();
-        byte[] bytes = new byte[(code.length() * 5  + 7 )/ 8];
+        byte[] bytes = new byte[(code.length() * 5 )/ 8];
         byte tmp = 0;
         byte byteSize = 0;
         int index = 0;
+        int i = 0;
         for (char c : chars) {
             byte n = (byte) baseChars.indexOf(c);
+            i++;
             if (byteSize == 0) {
                 tmp = n;
                 byteSize = 5;
             } else {
                 int left = Math.min(8 - byteSize, 5);
+                if(i == chars.length){
+                    bytes[index] =(byte) (tmp << left | (n & ((1 << left) - 1)));
+                    break;
+                }
                 tmp = (byte) (tmp << left | (n >>> (5 - left)));
                 byteSize += left;
                 if (byteSize >= 8) {
@@ -85,7 +94,6 @@ public class Base32 {
                     }
                 }
             }
-
         }
         return bytes;
     }

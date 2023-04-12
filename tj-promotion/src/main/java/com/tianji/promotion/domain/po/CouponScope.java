@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
@@ -16,13 +15,11 @@ import java.io.Serializable;
  * </p>
  *
  * @author 虎哥
- * @since 2022-09-06
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @TableName("coupon_scope")
-@NoArgsConstructor
 public class CouponScope implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -34,6 +31,7 @@ public class CouponScope implements Serializable {
      * 范围限定类型：1-分类，2-课程，等等
      */
     private Integer type;
+
     /**
      * 优惠券id
      */
@@ -44,9 +42,5 @@ public class CouponScope implements Serializable {
      */
     private Long bizId;
 
-    public CouponScope(int type, Long couponId, Long bizId) {
-        this.type = type;
-        this.couponId = couponId;
-        this.bizId = bizId;
-    }
+
 }

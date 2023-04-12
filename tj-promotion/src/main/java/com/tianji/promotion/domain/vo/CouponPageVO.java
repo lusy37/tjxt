@@ -1,6 +1,8 @@
 package com.tianji.promotion.domain.vo;
 
-import com.tianji.promotion.constants.ObtainType;
+import com.tianji.promotion.enums.CouponStatus;
+import com.tianji.promotion.enums.DiscountType;
+import com.tianji.promotion.enums.ObtainType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -14,23 +16,29 @@ public class CouponPageVO {
     private Long id;
     @ApiModelProperty("优惠券名称")
     private String name;
-    @ApiModelProperty("使用范围说明")
-    private String scope;
-    @ApiModelProperty("优惠券规则")
-    private String rule;
+    @ApiModelProperty("是否限定使用范围")
+    private Boolean specific;
+
+    @ApiModelProperty("优惠券类型，1：每满减，2：折扣，3：无门槛，4：普通满减")
+    private DiscountType discountType;
+    @ApiModelProperty("折扣门槛，0代表无门槛")
+    private Integer thresholdAmount;
+    @ApiModelProperty("折扣值，满减填抵扣金额；打折填折扣值：80标示打8折")
+    private Integer discountValue;
+    @ApiModelProperty("最大优惠金额")
+    private Integer maxDiscountAmount;
+
     @ApiModelProperty("获取方式1：手动领取，2：指定发放（通过兑换码兑换）")
     private ObtainType obtainWay;
-
     @ApiModelProperty("已使用")
-    private Integer used;
+    private Integer usedNum;
     @ApiModelProperty("已发放数量")
     private Integer issueNum;
-    @ApiModelProperty("优惠券总量，如果为0代表无上限")
+    @ApiModelProperty("优惠券总量")
     private Integer totalNum;
 
-    @ApiModelProperty("发放开始时间")
+    @ApiModelProperty("优惠券创建时间")
     private LocalDateTime createTime;
-
     @ApiModelProperty("发放开始时间")
     private LocalDateTime issueBeginTime;
     @ApiModelProperty("发放结束时间")
@@ -44,5 +52,5 @@ public class CouponPageVO {
     private LocalDateTime termEndTime;
 
     @ApiModelProperty("状态")
-    private Integer status;
+    private CouponStatus status;
 }
