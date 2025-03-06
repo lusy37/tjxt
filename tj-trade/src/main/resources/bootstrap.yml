@@ -11,6 +11,7 @@ spring:
     nacos:
       config:
         file-extension: yaml
+        # 未指定 namespace，默认使用 public 命名空间
         shared-configs: # 共享配置
           - dataId: shared-spring.yaml # 共享spring配置
           - dataId: shared-redis.yaml # 共享redis配置
