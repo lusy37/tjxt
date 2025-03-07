@@ -1,5 +1,6 @@
 package com.tianji.learning.service;
 
+import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.learning.domain.po.LearningLesson;
@@ -34,4 +35,6 @@ public interface ILearningLessonService extends IService<LearningLesson> {
     Long isLessonValid(Long courseId);
 
     LearningLessonVO queryLessonByCourse(Long courseId);
+
+    Integer countLearningLessonByCourse(Long courseId);
 }

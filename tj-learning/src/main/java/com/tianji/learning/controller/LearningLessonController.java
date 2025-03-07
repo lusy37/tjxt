@@ -1,6 +1,7 @@
 package com.tianji.learning.controller;
 
 
+import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.common.utils.UserContext;
@@ -65,6 +66,16 @@ public class LearningLessonController {
     @GetMapping("/{courseId}")
     public LearningLessonVO queryLessonByCourse(@PathVariable Long courseId) {
         return lessonService.queryLessonByCourse(courseId);
+    }
+
+    /**
+     * 统计课程学习人数
+     * @param courseId 课程id
+     * @return 学习人数
+     */
+    @GetMapping("/lessons/{courseId}/count")
+    Integer countLearningLessonByCourse(@PathVariable("courseId") Long courseId) {
+        return lessonService.countLearningLessonByCourse(courseId);
     }
 
 }

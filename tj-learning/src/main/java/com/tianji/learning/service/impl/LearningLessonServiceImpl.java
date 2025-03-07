@@ -8,6 +8,7 @@ import com.tianji.api.client.course.CourseClient;
 import com.tianji.api.dto.course.CataSimpleInfoDTO;
 import com.tianji.api.dto.course.CourseFullInfoDTO;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
+import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.common.exceptions.BadRequestException;
@@ -219,6 +220,13 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .one();
 
         return lesson == null ? null : BeanUtil.copyProperties(lesson, LearningLessonVO.class);
+    }
+
+    @Override
+    public Integer countLearningLessonByCourse(Long courseId) {
+        return lambdaQuery()
+                .eq(LearningLesson::getCourseId, courseId)
+                .count();
     }
 
     private Map<Long, CourseSimpleInfoDTO> queryCourseSimpleInfoList(List<LearningLesson> records) {
