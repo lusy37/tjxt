@@ -226,6 +226,10 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
     public Integer countLearningLessonByCourse(Long courseId) {
         return lambdaQuery()
                 .eq(LearningLesson::getCourseId, courseId)
+                .in(LearningLesson::getStatus,
+                        LessonStatus.NOT_BEGIN,
+                        LessonStatus.LEARNING,
+                        LessonStatus.FINISHED)
                 .count();
     }
 
