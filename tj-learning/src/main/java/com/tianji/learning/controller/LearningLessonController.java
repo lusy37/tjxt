@@ -62,7 +62,7 @@ public class LearningLessonController {
         return lessonService.isLessonValid(courseId);
     }
 
-    @ApiOperation("查询当前用户的课表是否有该课程")
+    @ApiOperation("查询用户课表中指定课程状态")
     @GetMapping("/{courseId}")
     public LearningLessonVO queryLessonByCourse(@PathVariable Long courseId) {
         return lessonService.queryLessonByCourse(courseId);
@@ -73,6 +73,7 @@ public class LearningLessonController {
      * @param courseId 课程id
      * @return 学习人数
      */
+    @ApiOperation("统计课程学习人数")
     @GetMapping("/lessons/{courseId}/count")
     Integer countLearningLessonByCourse(@PathVariable("courseId") Long courseId) {
         return lessonService.countLearningLessonByCourse(courseId);
