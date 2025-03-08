@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -195,12 +196,19 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .eq(LearningLesson::getCourseId, courseId)
                 .one();
 
-        if (lesson == null) {
+        if (lesson == null || lesson.getExpireTime() == null) {
             return null;
         }
 
         // 查看用户的课程有效期
         if (lesson.getStatus() == LessonStatus.EXPIRED || lesson.getExpireTime().isBefore(LocalDateTime.now())) {
+            // 异步任务更新状态为 EXPIRED
+            CompletableFuture.runAsync(() -> {
+                if (lesson.getStatus() != LessonStatus.EXPIRED) {
+                    lesson.setStatus(LessonStatus.EXPIRED);
+                    updateById(lesson);
+                }
+            });
             return null;
         }
 
