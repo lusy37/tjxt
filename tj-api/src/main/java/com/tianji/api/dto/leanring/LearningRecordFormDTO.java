@@ -1,5 +1,6 @@
 package com.tianji.api.dto.leanring;
 
+import com.tianji.api.constants.SectionType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 public class LearningRecordFormDTO {
 
     @ApiModelProperty("小节类型：1-视频，2-考试")
-    private Integer sectionType;
+    private SectionType sectionType;
 
     @ApiModelProperty("课表id")
     private Long lessonId;
