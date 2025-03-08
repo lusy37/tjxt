@@ -16,6 +16,7 @@ import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.learning.constants.LessonStatus;
+import com.tianji.learning.constants.PlanStatus;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.domain.vo.LearningLessonVO;
 import com.tianji.learning.mapper.LearningLessonMapper;
@@ -52,6 +53,7 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
 
     /**
      * 添加用户课表
+     *
      * @param userId
      * @param courseIds
      */
@@ -118,7 +120,7 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
             lessonVO.setSections(simpleInfoDTO.getSectionNum());
             list.add(lessonVO);
         }
-        
+
         return PageDTO.of(lessonPage, list);
     }
 
@@ -239,6 +241,37 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                         LessonStatus.LEARNING,
                         LessonStatus.FINISHED)
                 .count();
+    }
+
+    @Override
+    public LearningLesson queryByUserAndCourseId(Long userId, Long courseId) {
+
+        return lambdaQuery()
+                .eq(LearningLesson::getUserId, userId)
+                .eq(LearningLesson::getCourseId, courseId)
+                .one();
+    }
+
+    @Override
+    public void createLearningPlan(Long courseId, Integer freq) {
+
+        Long userId = UserContext.getUser();
+
+        LearningLesson lesson = queryByUserAndCourseId(userId, courseId);
+
+        if (lesson == null) {
+            throw new BadRequestException("课程不存在");
+        }
+
+        LearningLesson l = new LearningLesson();
+
+        l.setId(lesson.getId());
+        l.setWeekFreq(freq);
+        if (lesson.getPlanStatus() == PlanStatus.NO_PLAN) {
+            l.setPlanStatus(PlanStatus.PLAN_RUNNING);
+        }
+
+        updateById(l);
     }
 
     private Map<Long, CourseSimpleInfoDTO> queryCourseSimpleInfoList(List<LearningLesson> records) {
