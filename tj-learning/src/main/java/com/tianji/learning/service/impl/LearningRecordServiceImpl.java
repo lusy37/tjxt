@@ -2,16 +2,16 @@ package com.tianji.learning.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.tianji.api.client.course.CourseClient;
-import com.tianji.api.constants.SectionType;
 import com.tianji.api.dto.course.CourseFullInfoDTO;
 import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.api.dto.leanring.LearningRecordDTO;
-import com.tianji.api.dto.leanring.LearningRecordFormDTO;
+import com.tianji.learning.domain.dto.LearningRecordFormDTO;
 import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.exceptions.DbException;
 import com.tianji.common.utils.BeanUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.learning.constants.LessonStatus;
+import com.tianji.learning.constants.SectionType;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.domain.po.LearningRecord;
 import com.tianji.learning.mapper.LearningRecordMapper;
@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -172,7 +171,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
         // 更新数据
         boolean success = lambdaUpdate()
-                .set(LearningRecord::getMoment, oldRecord.getMoment())
+                .set(LearningRecord::getMoment, recordFormDTO.getMoment())
                 .set(finished, LearningRecord::getFinished, finished)
                 .set(finished, LearningRecord::getFinishTime, recordFormDTO.getCommitTime())
                 .eq(LearningRecord::getId, oldRecord.getId())
