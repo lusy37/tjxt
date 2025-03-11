@@ -18,6 +18,7 @@ import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.tianji.learning.service.ILearningRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.tianji.learning.utils.LearningRecordDelayTaskHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +38,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
     private final ILearningLessonService learningLessonService;
     private final CourseClient courseClient;
+    private final LearningRecordDelayTaskHandler delayTaskHandler;
 
     @Override
     public LearningLessonDTO queryLearningRecordByCourse(Long courseId) {
@@ -91,10 +93,13 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         }
 
         // 3.处理课表数据
-        handleLearningLessonsChanges(recordFormDTO, finished);
+        if (!finished) {
+            return;
+        }
+        handleLearningLessonsChanges(recordFormDTO);
     }
 
-    private void handleLearningLessonsChanges(LearningRecordFormDTO recordFormDTO, Boolean finished) {
+    private void handleLearningLessonsChanges(LearningRecordFormDTO recordFormDTO) {
 
         // 查询课表
         LearningLesson lesson = learningLessonService.getById(recordFormDTO.getLessonId());
@@ -105,15 +110,15 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
         // 2.判断是否有新的完成小节
         boolean allLearned = false;
-        if (finished) {
-            // 3.如果有新完成的小节，则需要查询课程数据
-            CourseFullInfoDTO cInfo = courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
-            if (cInfo == null) {
-                throw new BizIllegalException("课程不存在，无法更新数据！");
-            }
-            // 4.比较课程是否全部学完：已学习小节 >= 课程总小节
-            allLearned = lesson.getLearnedSections() + 1 >= cInfo.getSectionNum();
+
+        // 3.如果有新完成的小节，则需要查询课程数据
+        CourseFullInfoDTO cInfo = courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
+        if (cInfo == null) {
+            throw new BizIllegalException("课程不存在，无法更新数据！");
         }
+        // 4.比较课程是否全部学完：已学习小节 >= 课程总小节
+        allLearned = lesson.getLearnedSections() + 1 >= cInfo.getSectionNum();
+
 
         // 5.更新课表数据
         learningLessonService.lambdaUpdate()
@@ -122,7 +127,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
                 .set(LearningLesson::getLatestSectionId, recordFormDTO.getSectionId())
                 .set(LearningLesson::getLatestLearnTime, recordFormDTO.getCommitTime())
                 // .set(finished, LearningLesson::getLearnedSections, lesson.getLearnedSections() + 1)
-                .setSql(finished, "learned_sections = learned_sections + 1")
+                .setSql("learned_sections = learned_sections + 1")
                 .eq(LearningLesson::getId, lesson.getId())
                 .update();
     }
@@ -144,11 +149,13 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
     private Boolean handleVideoRecord(Long userId, LearningRecordFormDTO recordFormDTO) {
 
+        // 查看 redis 中是否有数据
+        LearningRecord oldRecord = queryOldRecord(recordFormDTO.getLessonId(), recordFormDTO.getSectionId());
         // 判断是不是第一次提交
-        LearningRecord oldRecord = lambdaQuery()
-                .eq(LearningRecord::getLessonId, recordFormDTO.getLessonId())
-                .eq(LearningRecord::getSectionId, recordFormDTO.getSectionId())
-                .one();
+        // LearningRecord oldRecord = lambdaQuery()
+        //         .eq(LearningRecord::getLessonId, recordFormDTO.getLessonId())
+        //         .eq(LearningRecord::getSectionId, recordFormDTO.getSectionId())
+        //         .one();
 
         if (oldRecord == null) {
             // 第一次提交
@@ -169,11 +176,22 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         // 判断是否是第一次完成
         boolean finished = !oldRecord.getFinished() && recordFormDTO.getMoment()*2 >= recordFormDTO.getDuration();
 
-        // 更新数据
+        if (!finished) {
+            LearningRecord record = new LearningRecord();
+            record.setLessonId(recordFormDTO.getLessonId());
+            record.setSectionId(recordFormDTO.getSectionId());
+            record.setMoment(recordFormDTO.getMoment());
+            record.setFinished(oldRecord.getFinished());
+            record.setId(oldRecord.getId());
+            delayTaskHandler.addLearningRecordTask(record);
+            return false;
+        }
+
+        // 第一次学完，更新数据
         boolean success = lambdaUpdate()
                 .set(LearningRecord::getMoment, recordFormDTO.getMoment())
-                .set(finished, LearningRecord::getFinished, finished)
-                .set(finished, LearningRecord::getFinishTime, recordFormDTO.getCommitTime())
+                .set(LearningRecord::getFinished, true)
+                .set(LearningRecord::getFinishTime, recordFormDTO.getCommitTime())
                 .eq(LearningRecord::getId, oldRecord.getId())
                 .update();
 
@@ -181,6 +199,27 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
             throw new DbException("更新学习记录失败");
         }
 
-        return finished;
+        // 清理缓存
+        delayTaskHandler.cleanRecordCache(recordFormDTO.getLessonId(), recordFormDTO.getSectionId());
+        return true;
+    }
+
+    private LearningRecord queryOldRecord(Long lessonId, Long sectionId) {
+        // 1、读取缓存
+        LearningRecord recordCache = delayTaskHandler.readRecordCache(lessonId, sectionId);
+        // 2、如果命中直接返回
+        if (recordCache != null) {
+            return recordCache;
+        }
+        // 3、如果没有命中，查询数据库
+        LearningRecord oldRecord = lambdaQuery()
+                .eq(LearningRecord::getLessonId, lessonId)
+                .eq(LearningRecord::getSectionId, sectionId)
+                .one();
+        // 4、如果查询到数据，写入缓存
+        if (oldRecord != null) {
+            delayTaskHandler.writeRecordCache(oldRecord);
+        }
+        return oldRecord;
     }
 }
