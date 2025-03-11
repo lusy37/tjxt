@@ -1,6 +1,6 @@
-package com.tianji.api.dto.leanring;
+package com.tianji.learning.domain.dto;
 
-import com.tianji.api.constants.SectionType;
+import com.tianji.learning.constants.SectionType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.tianji.api.constants;
+package com.tianji.learning.constants;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
