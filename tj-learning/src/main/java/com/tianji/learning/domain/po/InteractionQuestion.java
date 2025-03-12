@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
+
+import com.tianji.learning.constants.QuestionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -63,7 +65,7 @@ public class InteractionQuestion implements Serializable {
     private Boolean hidden;
 
     @ApiModelProperty(value = "管理端问题状态：0-未查看，1-已查看")
-    private Integer status;
+    private QuestionStatus status;
 
     @ApiModelProperty(value = "提问时间")
     private LocalDateTime createTime;

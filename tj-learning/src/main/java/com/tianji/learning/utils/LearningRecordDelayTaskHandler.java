@@ -33,7 +33,7 @@ public class LearningRecordDelayTaskHandler {
     private static volatile boolean begin = true;
 
     private static ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(
-            24,
+            12,
             20,
             60,
             TimeUnit.SECONDS,
