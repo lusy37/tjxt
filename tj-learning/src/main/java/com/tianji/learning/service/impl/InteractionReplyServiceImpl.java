@@ -61,7 +61,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             questionMapper.update(null,
                     new UpdateWrapper<InteractionQuestion>()
                             .setSql("answer_times = answer_times + 1")
-                            .set("latest_answer_id", reply.getUserId())
+                            .set("latest_answer_id", reply.getId())
                             .set(replyDTO.getIsStudent(),"status", 0)
                             .eq("id", replyDTO.getQuestionId()));
 
