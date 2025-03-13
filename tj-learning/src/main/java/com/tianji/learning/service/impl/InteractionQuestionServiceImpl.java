@@ -114,7 +114,7 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
             return PageDTO.empty(page);
         }
 
-        // 收集回答人的 id
+        // 收集最近回答的主键 id
         Set<Long> answerIds = records.stream()
                 .map(InteractionQuestion::getLatestAnswerId)
                 .collect(Collectors.toSet());
@@ -129,8 +129,7 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
                     .list();
             if (CollUtil.isNotEmpty(replyList)) {
                 answerMap = replyList.stream()
-                        .distinct()
-                        .collect(Collectors.toMap(InteractionReply::getUserId, r -> r,(existing, replacement) -> replacement));
+                        .collect(Collectors.toMap(InteractionReply::getId, r -> r,(existing, replacement) -> replacement));
             }
         }
 
