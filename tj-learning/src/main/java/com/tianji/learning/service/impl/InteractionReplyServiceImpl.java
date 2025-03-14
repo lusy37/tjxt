@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.api.client.remark.RemarkClient;
 import com.tianji.api.client.user.UserClient;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.domain.dto.PageDTO;
@@ -41,6 +42,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
 
     private final InteractionQuestionMapper questionMapper;
     private final UserClient userClient;
+    private final RemarkClient remarkClient;
 
     @Override
     @Transactional
@@ -162,6 +164,12 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             return PageDTO.empty(page);
         }
 
+        // 获取所有问题的 id, 查看用户点赞状态
+        List<Long> bizIds = records.stream()
+                .map(InteractionReply::getId)
+                .collect(Collectors.toList());
+        Set<Long> bizLiked = remarkClient.isBizLiked(bizIds);
+
         Set<Long> userIds = records.stream()
                 .flatMap(reply -> Stream.of(reply.getUserId(), reply.getAnswerId()))
                 .filter(Objects::nonNull)
@@ -197,6 +205,12 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
                     vo.setTargetUserName(userDTO.getName());
                 }
             }
+
+            // 封装当前用户是否点过赞
+            if (CollUtil.isNotEmpty(bizLiked)) {
+                vo.setLiked(bizLiked.contains(record.getId()));
+            }
+
             voList.add(vo);
         }
 
