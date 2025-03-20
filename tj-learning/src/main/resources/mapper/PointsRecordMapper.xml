@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tianji.learning.mapper.PointsRecordMapper">
+
+    <insert id="createPointsRecordTableBySeason" parameterType="java.lang.String">
+        CREATE TABLE IF NOT EXISTS `${tableName}` (
+        `id` bigint NOT NULL AUTO_INCREMENT COMMENT '积分记录表id',
+        `user_id` bigint NOT NULL COMMENT '用户id',
+        `type` tinyint(4) NOT NULL COMMENT '积分方式：1-课程学习，2-每日签到，3-课程问答， 4-课程笔记，5-课程评价',
+        `points` tinyint NOT NULL COMMENT '积分值',
+        `create_time` datetime NOT NULL COMMENT '创建时间',
+        PRIMARY KEY (`id`) USING BTREE,
+        KEY `idx_user_id` (`user_id`) USING BTREE
+        ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='积分记录表';
+    </insert>
+</mapper>
