@@ -14,6 +14,7 @@ import com.tianji.promotion.service.IExchangeCodeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.utils.CodeUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import java.util.List;
  * @since 2025-03-19
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, ExchangeCode> implements IExchangeCodeService {
 
@@ -86,5 +88,13 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
         }
         List<ExchangeCodeVO> voList = BeanUtil.copyToList(records, ExchangeCodeVO.class);
         return PageDTO.of(page, voList);
+    }
+
+    @Override
+    public boolean updateExchangeMark(long serialNum, boolean mark) {
+        // 这里的 boo 返回的是原来位置的值,如果是false,表示未使用过,true则表示已经兑换过
+        Boolean boo = redisTemplate.opsForValue().setBit(PromotionConstants.COUPON_CODE_SERIAL_KEY, serialNum, mark);
+        log.info("boo:{}",boo);
+        return boo != null && boo;
     }
 }
