@@ -34,6 +34,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.StringRedisConnection;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -55,6 +56,7 @@ import java.util.stream.Stream;
  * @author lusy
  * @since 2025-03-19
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class  CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements ICouponService {
@@ -152,6 +154,7 @@ public class  CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implem
             // 从 c 中获取发放开始和结束时间, 因为前面已经对发放时间进行了校验
             coupon.setIssueBeginTime(c.getIssueBeginTime());
             coupon.setIssueEndTime(c.getIssueEndTime());
+            log.info("优惠券状态为待发放，添加缓存{}",coupon);
             cacheCouponInfo(coupon);
         }
 
@@ -166,14 +169,14 @@ public class  CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implem
         // 组织数据
         Map<String, String> couponMap = new HashMap<>();
         couponMap.put("issueBeginTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueBeginTime())));
-        couponMap.put("issueEndTime", String.valueOf(DateUtils.toEpochMilli(coupon.getTermEndTime())));
+        couponMap.put("issueEndTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueEndTime())));
         couponMap.put("totalNum", String.valueOf(coupon.getTotalNum()));
         couponMap.put("userLimit", String.valueOf(coupon.getUserLimit()));
         // 写缓存
-        redisTemplate.opsForHash().putAll(PromotionConstants.COUPON_CACHE_KEY_PREFIX, couponMap);
+        redisTemplate.opsForHash().putAll(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), couponMap);
         // 设置过期时间
         long currentTimeMillis = System.currentTimeMillis();
-        long expireTimeMillis = DateUtils.toEpochMilli(coupon.getTermEndTime()) - currentTimeMillis;
+        long expireTimeMillis = DateUtils.toEpochMilli(coupon.getIssueEndTime()) - currentTimeMillis;
         // 健壮性判断
         // 如果过期时间小于等于0，表示优惠券已过期，设置为立即过期
         if (expireTimeMillis <= 0) {

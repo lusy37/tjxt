@@ -3,6 +3,7 @@ package com.tianji.promotion.utils;
 import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.utils.StringUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -18,6 +19,8 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.TypedValue;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.expression.spel.support.StandardTypeLocator;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
@@ -28,6 +31,7 @@ import java.util.regex.Pattern;
 @Component
 @Aspect
 @RequiredArgsConstructor
+@Slf4j
 public class MyLockAspect implements Ordered {
 
     private final RedissonClient redissonClient;
@@ -73,7 +77,7 @@ public class MyLockAspect implements Ordered {
      * @param pjp 切入点
      * @return 解析后的锁名称
      */
-    private String getLockName(String name, ProceedingJoinPoint pjp) {
+    /*private String getLockName(String name, ProceedingJoinPoint pjp) {
         // 1.判断是否存在spel表达式
         if (StringUtils.isBlank(name) || !name.contains("#")) {
             // 不存在，直接返回
@@ -95,6 +99,48 @@ public class MyLockAspect implements Ordered {
             name = name.replace(tmp, ObjectUtils.nullSafeToString(value));
         }
         return name;
+    }*/
+
+    private String getLockName(String name, ProceedingJoinPoint pjp) {
+        if (StringUtils.isBlank(name) || !name.contains("#")) {
+            log.info(" 无需解析 SpEL，锁名称直接返回: {}", name);
+            return name;
+        }
+
+        log.info(" 开始解析 SpEL 锁名称: {}", name);
+
+        // 1. 使用 StandardEvaluationContext（支持 T(...) 静态方法）
+        StandardEvaluationContext context = new StandardEvaluationContext();
+        context.setVariable("T", new StandardTypeLocator()); // 允许解析 T()
+
+        // 2. 解析方法参数（兼容 #{code} 变量）
+        Method method = resolveMethod(pjp);
+        String[] paramNames = parameterNameDiscoverer.getParameterNames(method);
+        Object[] args = pjp.getArgs();
+        if (paramNames != null) {
+            for (int i = 0; i < paramNames.length; i++) {
+                context.setVariable(paramNames[i], args[i]); // 把方法参数放入上下文
+                log.info("🔹 解析方法参数: {} = {}", paramNames[i], args[i]);
+            }
+        }
+
+        // 3. 正则匹配 `#{}` 变量并解析
+        Matcher matcher = pattern.matcher(name);
+        while (matcher.find()) {
+            String tmp = matcher.group(); // #{code} 或 #{T(...)}
+            String spelExpression = matcher.group(1); // 提取 `code` 或 `T(...)`
+            log.info("发现 SpEL 表达式: {}", spelExpression);
+
+            Expression expression = new SpelExpressionParser().parseExpression(spelExpression);
+            Object value = expression.getValue(context);
+
+            log.info("SpEL 解析结果: {} -> {}", tmp, value);
+            name = name.replace(tmp, ObjectUtils.nullSafeToString(value));
+        }
+
+        log.info("最终锁名称: {}", name);
+        return name;
+
     }
 
     private Method resolveMethod(ProceedingJoinPoint pjp) {
