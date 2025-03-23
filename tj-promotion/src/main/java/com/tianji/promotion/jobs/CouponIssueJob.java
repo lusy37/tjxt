@@ -1,6 +1,5 @@
 package com.tianji.promotion.jobs;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.common.utils.CollUtils;
 import com.tianji.promotion.domain.pojo.Coupon;
@@ -50,7 +49,7 @@ public class CouponIssueJob {
         // 从xxl-job的参数中获取每页大小
         int size = Integer.parseInt(XxlJobHelper.getJobParam());
         log.info("[定时更新优惠券状态]分片信息：index={},size={}", index, size);
-        // 查询未开始的优惠券
+        // 查询发放时间结束的优惠券
         Page<Coupon> page = couponService.lambdaQuery()
                 .eq(Coupon::getStatus, CouponStatus.ISSUING)
                 .le(Coupon::getIssueEndTime, LocalDateTime.now())
@@ -61,7 +60,7 @@ public class CouponIssueJob {
             return;
         }
         // 批量停止优惠券
-        couponService.stopIssueBatch(records);
+        couponService.pauseIssueBatch(records);
     }
 
 }

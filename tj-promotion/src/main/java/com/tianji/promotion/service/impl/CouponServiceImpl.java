@@ -147,11 +147,39 @@ public class  CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implem
         // 更新优惠券
         updateById(c);
 
+        // 添加缓存, 前提是立刻发放
+        if (isBegin) {
+            // 从 c 中获取发放开始和结束时间, 因为前面已经对发放时间进行了校验
+            coupon.setIssueBeginTime(c.getIssueBeginTime());
+            coupon.setIssueEndTime(c.getIssueEndTime());
+            cacheCouponInfo(coupon);
+        }
+
         // 判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放
         if (coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT) {
             coupon.setIssueEndTime(dto.getIssueEndTime());
             codeService.asyncGenerateExchangeCode(coupon);
         }
+    }
+
+    private void cacheCouponInfo(Coupon coupon) {
+        // 组织数据
+        Map<String, String> couponMap = new HashMap<>();
+        couponMap.put("issueBeginTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueBeginTime())));
+        couponMap.put("issueEndTime", String.valueOf(DateUtils.toEpochMilli(coupon.getTermEndTime())));
+        couponMap.put("totalNum", String.valueOf(coupon.getTotalNum()));
+        couponMap.put("userLimit", String.valueOf(coupon.getUserLimit()));
+        // 写缓存
+        redisTemplate.opsForHash().putAll(PromotionConstants.COUPON_CACHE_KEY_PREFIX, couponMap);
+        // 设置过期时间
+        long currentTimeMillis = System.currentTimeMillis();
+        long expireTimeMillis = DateUtils.toEpochMilli(coupon.getTermEndTime()) - currentTimeMillis;
+        // 健壮性判断
+        // 如果过期时间小于等于0，表示优惠券已过期，设置为立即过期
+        if (expireTimeMillis <= 0) {
+            expireTimeMillis = 1;  // 设置为1毫秒，立即过期
+        }
+        redisTemplate.expire(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), Duration.ofMillis(expireTimeMillis));
     }
 
     @Override
@@ -283,13 +311,22 @@ public class  CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implem
 
                 // 写入缓存
                 src.hMSet(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), map);
+                // 设置过期时间
+                long currentTimeMillis = System.currentTimeMillis();
+                long expireTimeMillis = DateUtils.toEpochMilli(coupon.getTermEndTime()) - currentTimeMillis;
+                // 健壮性判断
+                // 如果过期时间小于等于0，表示优惠券已过期，设置为立即过期
+                if (expireTimeMillis <= 0) {
+                    expireTimeMillis = 1;  // 设置为1毫秒，立即过期
+                }
+                src.pExpire(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), expireTimeMillis);
             }
             return null;
         });
     }
 
     @Override
-    public void stopIssueBatch(List<Coupon> coupons) {
+    public void pauseIssueBatch(List<Coupon> coupons) {
         // 更新优惠券状态
         coupons.forEach(c -> c.setStatus(CouponStatus.FINISHED));
         updateBatchById(coupons);
@@ -299,7 +336,13 @@ public class  CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implem
                 .toArray(String[]::new);
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             StringRedisConnection src = (StringRedisConnection) connection;
-            src.del(keys);
+            try {
+                // 批量删除缓存
+                src.del(keys);
+            } catch (Exception e) {
+                // 记录日志或者其他处理方式
+                log.error("删除 ID 的优惠券缓存失败: " + Arrays.toString(keys), e);
+            }
             return null;
         });
     }
