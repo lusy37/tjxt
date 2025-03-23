@@ -39,7 +39,7 @@ public interface ICouponService extends IService<Coupon> {
 
     void beginIssueBatch(List<Coupon> records);
 
-    void stopIssueBatch(List<Coupon> records);
+    void pauseIssueBatch(List<Coupon> records);
 
     List<CouponVO> queryIssuingCoupons();
 
