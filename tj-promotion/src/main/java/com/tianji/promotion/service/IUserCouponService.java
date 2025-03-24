@@ -9,6 +9,7 @@ import com.tianji.promotion.domain.query.UserCouponQuery;
 import com.tianji.promotion.domain.vo.CouponPageVO;
 
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * <p>
@@ -29,4 +30,10 @@ public interface IUserCouponService extends IService<UserCoupon> {
     PageDTO<CouponPageVO> queryMyCoupons(@Valid UserCouponQuery query);
 
     void checkAndCreateUserCouponByMq(UserCouponDTO uc);
+
+    void writeOffCoupon(List<Long> userCouponIds);
+
+    void refundCoupon(List<Long> userCouponIds);
+
+    List<String> queryDiscountRules(List<Long> userCouponIds);
 }

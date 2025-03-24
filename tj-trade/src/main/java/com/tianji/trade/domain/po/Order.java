@@ -2,6 +2,8 @@ package com.tianji.trade.domain.po;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.tianji.trade.config.LongTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -73,7 +75,7 @@ public class Order implements Serializable {
     /**
      * 优惠券id
      */
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = LongTypeHandler.class)
     private List<Long> couponIds;
 
     /**
