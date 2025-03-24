@@ -31,4 +31,22 @@ public class PromotionConfig {
         log.info("初始化生成兑换码的线程池结束...");
         return executor;
     }
+
+    @Bean
+    public Executor discountSolutionExecutor(){
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        // 1.核心线程池大小
+        executor.setCorePoolSize(12);
+        // 2.最大线程池大小
+        executor.setMaxPoolSize(12);
+        // 3.队列大小
+        executor.setQueueCapacity(99999);
+        // 4.线程名称
+        executor.setThreadNamePrefix("discount-solution-calculator-");
+        // 5.拒绝策略
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        executor.initialize();
+        log.info("初始化生成优惠方案明细的线程池结束...");
+        return executor;
+    }
 }

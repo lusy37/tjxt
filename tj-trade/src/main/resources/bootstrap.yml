@@ -20,6 +20,7 @@ spring:
           - dataId: shared-feign.yaml # 共享feign配置
           - dataId: shared-mq.yaml # 共享mq配置
           - dataId: shared-xxljob.yaml # 共享mq配置
+          - dataId: shared-seata.yaml
 tj:
   swagger:
     enable: true
@@ -38,3 +39,7 @@ tj:
       enable: true
       excludeLoginPaths:
         - "/order-details/enrollNum"
+  mq:
+    listener:
+      retry:
+        stateless: false # mq开启有状态
