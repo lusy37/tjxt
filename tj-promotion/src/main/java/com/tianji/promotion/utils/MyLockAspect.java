@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -77,7 +78,7 @@ public class MyLockAspect implements Ordered {
      * @param pjp 切入点
      * @return 解析后的锁名称
      */
-    /*private String getLockName(String name, ProceedingJoinPoint pjp) {
+    private String getLockName(String name, ProceedingJoinPoint pjp) {
         // 1.判断是否存在spel表达式
         if (StringUtils.isBlank(name) || !name.contains("#")) {
             // 不存在，直接返回
@@ -94,53 +95,12 @@ public class MyLockAspect implements Ordered {
             // 2.1.获取表达式
             String tmp = matcher.group();
             // 2.2.尝试解析
-            Expression expression = parser.parseExpression("#" + matcher.group(1));
+            String group = matcher.group(1);
+            Expression expression = parser.parseExpression(group.charAt(0) == 'T' ? group : "#" + group);
             Object value = expression.getValue(context);
             name = name.replace(tmp, ObjectUtils.nullSafeToString(value));
         }
         return name;
-    }*/
-
-    private String getLockName(String name, ProceedingJoinPoint pjp) {
-        if (StringUtils.isBlank(name) || !name.contains("#")) {
-            log.info(" 无需解析 SpEL，锁名称直接返回: {}", name);
-            return name;
-        }
-
-        log.info(" 开始解析 SpEL 锁名称: {}", name);
-
-        // 1. 使用 StandardEvaluationContext（支持 T(...) 静态方法）
-        StandardEvaluationContext context = new StandardEvaluationContext();
-        context.setVariable("T", new StandardTypeLocator()); // 允许解析 T()
-
-        // 2. 解析方法参数（兼容 #{code} 变量）
-        Method method = resolveMethod(pjp);
-        String[] paramNames = parameterNameDiscoverer.getParameterNames(method);
-        Object[] args = pjp.getArgs();
-        if (paramNames != null) {
-            for (int i = 0; i < paramNames.length; i++) {
-                context.setVariable(paramNames[i], args[i]); // 把方法参数放入上下文
-                log.info("🔹 解析方法参数: {} = {}", paramNames[i], args[i]);
-            }
-        }
-
-        // 3. 正则匹配 `#{}` 变量并解析
-        Matcher matcher = pattern.matcher(name);
-        while (matcher.find()) {
-            String tmp = matcher.group(); // #{code} 或 #{T(...)}
-            String spelExpression = matcher.group(1); // 提取 `code` 或 `T(...)`
-            log.info("发现 SpEL 表达式: {}", spelExpression);
-
-            Expression expression = new SpelExpressionParser().parseExpression(spelExpression);
-            Object value = expression.getValue(context);
-
-            log.info("SpEL 解析结果: {} -> {}", tmp, value);
-            name = name.replace(tmp, ObjectUtils.nullSafeToString(value));
-        }
-
-        log.info("最终锁名称: {}", name);
-        return name;
-
     }
 
     private Method resolveMethod(ProceedingJoinPoint pjp) {

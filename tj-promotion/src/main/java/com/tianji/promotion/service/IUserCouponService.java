@@ -20,7 +20,7 @@ import javax.validation.Valid;
  */
 public interface IUserCouponService extends IService<UserCoupon> {
 
-    void receiveCoupon(Long id);
+    void receiveCoupon(Long couponId);
 
     void exchangeCoupon(String code);
 

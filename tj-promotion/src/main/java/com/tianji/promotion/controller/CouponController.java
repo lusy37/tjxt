@@ -32,6 +32,12 @@ import java.util.List;
 public class CouponController {
 
     private final ICouponService couponService;
+
+    @GetMapping
+    public void hello() {
+        System.out.println("hi");
+    }
+
     @ApiOperation("新增优惠券")
     @PostMapping
     public void saveCoupon(@RequestBody @Valid CouponFormDTO couponFormDTO) {
