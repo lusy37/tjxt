@@ -1,8 +1,10 @@
-**天机学堂 -（2025.03 - 2025.04）** 
-**项目描述：**
-天机学堂是一个在线的职业技能培训平台，核心业务是以售卖各种技能培训的在线课程，并提供丰富的学习辅助功能、交互功能，以提升用户学习时的氛围感和学习的积极性。
-**技术架构：** SpringBoot+SpringCloud+Mybatisplus+MySQL+Redis+Redisson+Caffeine+RabbitMQ+Xxl-Job+ES
-**个人职责：**
+**天机学堂 -（2025.03 - 2025.04）**  
+**项目描述：**  
+天机学堂是一个在线的职业技能培训平台，核心业务是以售卖各种技能培训的在线课程，并提供丰富的学习辅助功能、交互功能，以提升用户学习时的氛围感和学习的积极性。  
+
+**技术架构：** SpringBoot+SpringCloud+Mybatisplus+MySQL+Redis+Redisson+Caffeine+RabbitMQ+Xxl-Job+ES  
+
+**个人职责：**  
 - **实现学习服务**：针对高并发写请求，使用**Redis合并写请求**和**DelayQueue**实现断点续播，误差控制在**15秒内**
 
 - **开发积分排行榜**：利用**Redis ZSet**存储实时数据，通过**Xxl-Job 分片任务**定期持久化历史榜单至MySQL
