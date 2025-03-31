@@ -40,7 +40,7 @@ public class PromotionConfig {
         // 2.最大线程池大小
         executor.setMaxPoolSize(12);
         // 3.队列大小
-        executor.setQueueCapacity(99999);
+        executor.setQueueCapacity(5000);
         // 4.线程名称
         executor.setThreadNamePrefix("discount-solution-calculator-");
         // 5.拒绝策略

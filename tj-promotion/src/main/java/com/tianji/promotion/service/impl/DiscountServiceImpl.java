@@ -35,7 +35,7 @@ public class DiscountServiceImpl implements IDiscountService {
     private final UserCouponMapper userCouponMapper;
     private final ICouponScopeService scopeService;
     private final Executor discountSolutionExecutor;
-
+    private static final int THREAD_COUNT = 12; // 线程池核心线程数
     @Override
     public List<CouponDiscountDTO> findDiscountSolution(List<OrderCourseDTO> orderCourses) {
         // 获取当前用户的 id
@@ -71,14 +71,50 @@ public class DiscountServiceImpl implements IDiscountService {
         // 计算方案的优惠明细
         List<CouponDiscountDTO> list =
                 Collections.synchronizedList(new ArrayList<>(solutions.size()));
-        CountDownLatch latch = new CountDownLatch(solutions.size());
-        for (List<Coupon> solution : solutions) {
+        // CountDownLatch latch = new CountDownLatch(solutions.size());
+        // for (List<Coupon> solution : solutions) {
+        //     CompletableFuture.supplyAsync(
+        //             () -> calculateSolutionDiscount(availableCouponMap, orderCourses, solution),
+        //             discountSolutionExecutor
+        //     ).thenAccept( dto -> {
+        //         // 提交任务结果
+        //         list.add(dto);
+        //         latch.countDown();
+        //     });
+        // }
+        int solutionCount = solutions.size();
+
+        // 任务分组
+        List<List<List<Coupon>>> groupedSolutions = new ArrayList<>();
+        int solutionsPerThread = solutionCount / THREAD_COUNT; // 每组基础数量
+        int remainingSolutions = solutionCount % THREAD_COUNT; // 余数
+        int startIndex = 0;
+        for (int i = 0; i < THREAD_COUNT; i++) {
+            int endIndex = startIndex + solutionsPerThread + (i < remainingSolutions ? 1 : 0);
+            // 防止 endIndex 越界
+            if (startIndex < solutionCount) {
+                groupedSolutions.add(solutions.subList(startIndex, Math.min(endIndex, solutionCount)));
+            } else {
+                groupedSolutions.add(Collections.emptyList()); // 填充空列表
+            }
+            startIndex = endIndex;
+        }
+
+        // 提交任务
+        CountDownLatch latch = new CountDownLatch(groupedSolutions.size());
+        for (List<List<Coupon>> group : groupedSolutions) {
             CompletableFuture.supplyAsync(
-                    () -> calculateSolutionDiscount(availableCouponMap, orderCourses, solution),
+                    () -> {
+                        List<CouponDiscountDTO> groupResults = new ArrayList<>();
+                        for (List<Coupon> solution : group) {
+                            CouponDiscountDTO dto = calculateSolutionDiscount(availableCouponMap, orderCourses, solution);
+                            groupResults.add(dto);
+                        }
+                        return groupResults;
+                    },
                     discountSolutionExecutor
-            ).thenAccept( dto -> {
-                // 提交任务结果
-                list.add(dto);
+            ).thenAccept(groupResults -> {
+                list.addAll(groupResults);
                 latch.countDown();
             });
         }
