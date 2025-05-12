@@ -154,7 +154,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
         // 查询回答
         Page<InteractionReply> page = lambdaQuery()
                 .eq(questionId != null, InteractionReply::getQuestionId, questionId)
-                .eq(InteractionReply::getAnswerId,answerId != null ? answerId : 0)
+                .eq(InteractionReply::getAnswerId,answerId != null ? answerId : 0) // 如果查询的是一级评论，answerId 传入 0
                 .eq(!isAdmin,InteractionReply::getHidden, false)
                 .page(query.toMpPage("liked_times", false));
 
@@ -164,14 +164,14 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             return PageDTO.empty(page);
         }
 
-        // 获取所有问题的 id, 查看用户点赞状态
+        // 获取所有评论的 id, 查看用户点赞状态
         List<Long> bizIds = records.stream()
                 .map(InteractionReply::getId)
                 .collect(Collectors.toList());
         Set<Long> bizLiked = remarkClient.isBizLiked(bizIds);
 
         Set<Long> userIds = records.stream()
-                .flatMap(reply -> Stream.of(reply.getUserId(), reply.getAnswerId()))
+                .flatMap(reply -> Stream.of(reply.getUserId(), reply.getTargetUserId()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
@@ -202,6 +202,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
                 UserDTO userDTO = userMap.get(record.getTargetUserId());
                 InteractionReply answer = getById(record.getTargetReplyId());
                 if (userDTO != null && answer != null && (!answer.getAnonymity() || isAdmin)) {
+                    // 判断用户是否存在, 这条评论是否存在, 并且目标用户是否匿名
                     vo.setTargetUserName(userDTO.getName());
                 }
             }

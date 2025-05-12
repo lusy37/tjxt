@@ -15,6 +15,7 @@ import com.tianji.remark.domain.dto.LikeRecordFormDTO;
 import com.tianji.remark.domain.po.LikedRecord;
 import com.tianji.remark.mapper.LikedRecordMapper;
 import com.tianji.remark.service.ILikedRecordService;
+import com.tianji.remark.service.ILikedStatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -44,6 +45,7 @@ public class LikedRecordServiceRedisImpl extends ServiceImpl<LikedRecordMapper, 
 
     private final RabbitMqHelper rabbitMqHelper;
     private final StringRedisTemplate redisTemplate;
+    private final ILikedStatService statService;
 
     @Override
     public void addLikeRecord(LikeRecordFormDTO recordFormDTO) {
@@ -128,13 +130,8 @@ public class LikedRecordServiceRedisImpl extends ServiceImpl<LikedRecordMapper, 
             }
             list.add(LikedTimesDTO.of(Long.parseLong(bizId), likedTimes.intValue()));
         }
-
-        // 发送消息
-        rabbitMqHelper.send(
-                MqConstants.Exchange.LIKE_RECORD_EXCHANGE,
-                StrUtil.format(MqConstants.Key.LIKED_TIMES_KEY_TEMPLATE, bizType),
-                list
-        );
+        // 3.批量修改点赞数量
+        statService.updateLikedTimes(bizType, list);
     }
 
     private Boolean cancelLike(Long userId, LikeRecordFormDTO recordFormDTO) {
