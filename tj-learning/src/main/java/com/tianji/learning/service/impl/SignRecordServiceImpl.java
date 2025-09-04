@@ -38,7 +38,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         String key = RedisConstants.SIGN_RECORD_KEY_PREFIX + userId + now.format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
         // 获取当天日期偏移量
         int offset = now.getDayOfMonth() - 1;
-        // 向 Redis 中添加签到记录
+        // 向 Redis 中添加签到记录, 返回值是原始值
         Boolean exists = redisTemplate.opsForValue().setBit(key, offset, true);
         // 判断是否已经签到
         if (exists) {

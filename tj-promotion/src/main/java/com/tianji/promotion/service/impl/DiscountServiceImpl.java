@@ -21,10 +21,7 @@ import org.aspectj.weaver.ast.Var;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,7 +32,8 @@ public class DiscountServiceImpl implements IDiscountService {
     private final UserCouponMapper userCouponMapper;
     private final ICouponScopeService scopeService;
     private final Executor discountSolutionExecutor;
-    private static final int THREAD_COUNT = 12; // 线程池核心线程数
+    private static final int MAX_IN_FLIGHT_TASKS = 5000;
+
     @Override
     public List<CouponDiscountDTO> findDiscountSolution(List<OrderCourseDTO> orderCourses) {
         // 获取当前用户的 id
@@ -69,61 +67,43 @@ public class DiscountServiceImpl implements IDiscountService {
             solutions.add(List.of(coupon));
         }
         // 计算方案的优惠明细
-        List<CouponDiscountDTO> list =
-                Collections.synchronizedList(new ArrayList<>(solutions.size()));
-        // CountDownLatch latch = new CountDownLatch(solutions.size());
-        // for (List<Coupon> solution : solutions) {
-        //     CompletableFuture.supplyAsync(
-        //             () -> calculateSolutionDiscount(availableCouponMap, orderCourses, solution),
-        //             discountSolutionExecutor
-        //     ).thenAccept( dto -> {
-        //         // 提交任务结果
-        //         list.add(dto);
-        //         latch.countDown();
-        //     });
-        // }
-        int solutionCount = solutions.size();
 
-        // 任务分组
-        List<List<List<Coupon>>> groupedSolutions = new ArrayList<>();
-        int solutionsPerThread = solutionCount / THREAD_COUNT; // 每组基础数量
-        int remainingSolutions = solutionCount % THREAD_COUNT; // 余数
-        int startIndex = 0;
-        for (int i = 0; i < THREAD_COUNT; i++) {
-            int endIndex = startIndex + solutionsPerThread + (i < remainingSolutions ? 1 : 0);
-            // 防止 endIndex 越界
-            if (startIndex < solutionCount) {
-                groupedSolutions.add(solutions.subList(startIndex, Math.min(endIndex, solutionCount)));
-            } else {
-                groupedSolutions.add(Collections.emptyList()); // 填充空列表
-            }
-            startIndex = endIndex;
-        }
+        // 设置许可数量，等于队列容量，代表系统能容纳的最大在途任务数
+        Semaphore semaphore = new Semaphore(MAX_IN_FLIGHT_TASKS);
 
         // 提交任务
-        CountDownLatch latch = new CountDownLatch(groupedSolutions.size());
-        for (List<List<Coupon>> group : groupedSolutions) {
-            CompletableFuture.supplyAsync(
-                    () -> {
-                        List<CouponDiscountDTO> groupResults = new ArrayList<>();
-                        for (List<Coupon> solution : group) {
-                            CouponDiscountDTO dto = calculateSolutionDiscount(availableCouponMap, orderCourses, solution);
-                            groupResults.add(dto);
-                        }
-                        return groupResults;
-                    },
-                    discountSolutionExecutor
-            ).thenAccept(groupResults -> {
-                list.addAll(groupResults);
-                latch.countDown();
-            });
+        List<CompletableFuture<CouponDiscountDTO>> futures = new ArrayList<>();
+
+        for (List<Coupon> solution : solutions) {
+            try {
+                // 在提交任务前，获取一个许可。如果许可已满，这里会阻塞主线程
+                semaphore.acquire();
+
+                CompletableFuture<CouponDiscountDTO> future = CompletableFuture.supplyAsync(
+                        () -> calculateSolutionDiscount(availableCouponMap, orderCourses, solution),
+                        discountSolutionExecutor
+                ).whenComplete((result, ex) -> {
+                    // 任务完成后（无论成功或异常），必须释放许可
+                    semaphore.release();
+                });
+                futures.add(future);
+
+            } catch (InterruptedException e) {
+                // 处理中断异常
+                Thread.currentThread().interrupt();
+                log.error("优惠方案计算任务提交被中断", e);
+                break;
+            }
         }
-        try {
-            latch.await(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log.error("优惠方案计算被中断，{}", e.getMessage());
-        }
-        // 筛选最优解
+
+        // 等待所有已提交的任务完成
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        // 收集最终结果
+        List<CouponDiscountDTO> list = futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList());
+
         return findBestSolution(list);
     }
 
